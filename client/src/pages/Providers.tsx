@@ -105,7 +105,7 @@ export default function Providers() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="h-display text-2xl">{p.name}</div>
-                    <div className="text-xs text-parch-400">{kinds.data?.[p.kind]?.label ?? p.kind}</div>
+                    <div className="text-xs text-fg-400">{kinds.data?.[p.kind]?.label ?? p.kind}</div>
                   </div>
                   <div className="flex gap-1">
                     <button className="btn-ghost px-2.5 py-1.5" onClick={() => setDraft({ id: p.id, name: p.name, kind: p.kind, baseUrl: p.baseUrl ?? '', apiKey: '', defaultModel: p.defaultModel ?? '' })}>
@@ -117,16 +117,16 @@ export default function Providers() {
                   </div>
                 </div>
                 <dl className="mt-4 grid grid-cols-[8rem_1fr] gap-y-1.5 text-sm">
-                  <dt className="text-parch-400">Clé API</dt>
-                  <dd className="flex items-center gap-1.5 font-mono text-parch-200">
-                    <KeyRound className="h-3.5 w-3.5 text-gold-500" /> {p.hasKey ? p.keyHint : '—'}
+                  <dt className="text-fg-400">Clé API</dt>
+                  <dd className="flex items-center gap-1.5 font-mono text-fg-200">
+                    <KeyRound className="h-3.5 w-3.5 text-primary-500" /> {p.hasKey ? p.keyHint : '—'}
                   </dd>
-                  <dt className="text-parch-400">Modèle par défaut</dt>
-                  <dd className="font-mono text-parch-200">{p.defaultModel || '—'}</dd>
+                  <dt className="text-fg-400">Modèle par défaut</dt>
+                  <dd className="font-mono text-fg-200">{p.defaultModel || '—'}</dd>
                   {p.baseUrl && (
                     <>
-                      <dt className="text-parch-400">URL de base</dt>
-                      <dd className="truncate font-mono text-parch-200">{p.baseUrl}</dd>
+                      <dt className="text-fg-400">URL de base</dt>
+                      <dd className="truncate font-mono text-fg-200">{p.baseUrl}</dd>
                     </>
                   )}
                 </dl>
@@ -135,7 +135,7 @@ export default function Providers() {
                     {t === 'loading' ? <Spinner /> : <PlugZap className="h-4 w-4" />} Tester la connexion
                   </button>
                   {t && t !== 'loading' && (
-                    <span className={`flex items-center gap-1.5 text-xs ${t.ok ? 'text-verdigris-400' : 'text-vermilion-400'}`}>
+                    <span className={`flex items-center gap-1.5 text-xs ${t.ok ? 'text-success-400' : 'text-danger-400'}`}>
                       {t.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                       {t.text}
                     </span>

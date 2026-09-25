@@ -48,7 +48,7 @@ export default function Agents() {
       temperature: null,
       maxTokens: 16000,
       effort: 'high',
-      color: preset?.color ?? '#c9a227',
+      color: preset?.color ?? '#5b8def',
       tools: Object.keys(meta.data?.toolGroups ?? {}),
       webSearch: false,
       enabled: true,
@@ -124,8 +124,8 @@ export default function Agents() {
         }
       />
       {!providers.loading && !providers.data?.length && (
-        <div className="mb-4 rounded-lg border border-gold-500/30 bg-gold-500/5 px-4 py-3 text-sm text-parch-200">
-          Aucune connexion IA : commencez par <Link to="/providers" className="text-gold-400 underline">ajouter Claude et ChatGPT</Link>.
+        <div className="mb-4 rounded-lg border border-primary-500/30 bg-primary-500/5 px-4 py-3 text-sm text-fg-200">
+          Aucune connexion IA : commencez par <Link to="/providers" className="text-primary-400 underline">ajouter Claude et ChatGPT</Link>.
         </div>
       )}
       <ErrorBox error={agents.error} />
@@ -142,12 +142,12 @@ export default function Agents() {
             return (
               <div key={a.id} className={`card flex flex-col p-5 ${a.enabled ? '' : 'opacity-60'}`}>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-lg font-bold text-ink-950" style={{ background: a.color }}>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-lg font-bold text-[#0f1420]" style={{ background: a.color }}>
                     {a.name.slice(0, 1)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="h-display truncate text-xl">{a.name}</div>
-                    <div className="line-clamp-2 text-xs text-parch-400">{a.roleTitle || 'Sans rôle défini'}</div>
+                    <div className="line-clamp-2 text-xs text-fg-400">{a.roleTitle || 'Sans rôle défini'}</div>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-1.5">
@@ -180,12 +180,12 @@ export default function Agents() {
           <h2 className="h-display mb-3 text-2xl">Rôles types</h2>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {meta.data.presets.map((p) => (
-              <button key={p.key} onClick={() => newAgent(p)} className="card p-4 text-left transition hover:border-gold-500/50">
+              <button key={p.key} onClick={() => newAgent(p)} className="card p-4 text-left transition hover:border-primary-500/50">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
-                  <span className="font-medium text-parch-50">{p.name}</span>
+                  <span className="font-medium text-fg-50">{p.name}</span>
                 </div>
-                <div className="mt-1 text-xs text-parch-400">{p.title}</div>
+                <div className="mt-1 text-xs text-fg-400">{p.title}</div>
               </button>
             ))}
           </div>
@@ -200,7 +200,7 @@ export default function Agents() {
             </Field>
             <Field label="Couleur">
               <div className="flex gap-2">
-                <input type="color" className="h-9 w-12 cursor-pointer rounded border border-ink-600 bg-ink-850" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
+                <input type="color" className="h-9 w-12 cursor-pointer rounded border border-surface-600 bg-surface-850" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
                 <input className="input font-mono" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
               </div>
             </Field>
@@ -260,10 +260,10 @@ export default function Agents() {
               <span className="label">Outils</span>
               <div className="grid gap-2 sm:grid-cols-2">
                 {Object.entries(meta.data?.toolGroups ?? {}).map(([key, label]) => (
-                  <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-ink-700 px-3 py-2 text-sm text-parch-200 hover:border-ink-600">
+                  <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-700 px-3 py-2 text-sm text-fg-200 hover:border-surface-600">
                     <input
                       type="checkbox"
-                      className="accent-gold-500"
+                      className="accent-primary-500"
                       checked={draft.tools.includes(key)}
                       onChange={(e) => setDraft({ ...draft, tools: e.target.checked ? [...draft.tools, key] : draft.tools.filter((t) => t !== key) })}
                     />

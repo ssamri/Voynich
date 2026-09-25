@@ -5,28 +5,84 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
 
-  /* Encre et vélin */
-  --color-ink-950: #0d0b09;
-  --color-ink-900: #14110e;
-  --color-ink-850: #1a1612;
-  --color-ink-800: #211c17;
-  --color-ink-700: #2d261f;
-  --color-ink-600: #3d342a;
-  --color-ink-500: #5a4d3f;
-  --color-parch-50: #fbf7ee;
-  --color-parch-100: #f3ead6;
-  --color-parch-200: #e6d8b8;
-  --color-parch-300: #cdb993;
-  --color-parch-400: #a8966f;
-  --color-gold-300: #e6c65a;
-  --color-gold-400: #d6b13a;
-  --color-gold-500: #c9a227;
-  --color-gold-600: #a3821a;
-  --color-verdigris-400: #4fb39a;
-  --color-vermilion-400: #e0694a;
+/*
+ * Palette : couleurs sémantiques qui basculent entre mode clair et mode sombre.
+ *  surface-* : fonds (950 = page, 900 = cartes, 850 = champs, 800 = survol, 700/600 = bordures)
+ *  fg-*      : textes (50 = le plus contrasté, 400 = secondaire)
+ *  primary-* : bleu doux, couleur principale
+ */
+@theme inline {
+  --color-surface-950: var(--surface-950);
+  --color-surface-900: var(--surface-900);
+  --color-surface-850: var(--surface-850);
+  --color-surface-800: var(--surface-800);
+  --color-surface-700: var(--surface-700);
+  --color-surface-600: var(--surface-600);
+  --color-surface-500: var(--surface-500);
+  --color-fg-50: var(--fg-50);
+  --color-fg-100: var(--fg-100);
+  --color-fg-200: var(--fg-200);
+  --color-fg-300: var(--fg-300);
+  --color-fg-400: var(--fg-400);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-on-primary: var(--on-primary);
+  --color-success-400: var(--success-400);
+  --color-danger-400: var(--danger-400);
+}
+
+:root {
+  color-scheme: light;
+  --surface-950: #f7f9fc;
+  --surface-900: #ffffff;
+  --surface-850: #fbfcfe;
+  --surface-800: #eef2f8;
+  --surface-700: #e2e8f0;
+  --surface-600: #cbd5e1;
+  --surface-500: #94a3b8;
+  --fg-50: #0f1728;
+  --fg-100: #1a2233;
+  --fg-200: #334055;
+  --fg-300: #475569;
+  --fg-400: #5b6679;
+  --primary-300: #3a68c9;
+  --primary-400: #4a7bdc;
+  --primary-500: #5b8def;
+  --primary-600: #3f6fd0;
+  --on-primary: #ffffff;
+  --success-400: #2f9e77;
+  --danger-400: #d9534f;
+  --page-glow: rgb(91 141 239 / 0.1);
+}
+
+:root.dark {
+  color-scheme: dark;
+  --surface-950: #0f1420;
+  --surface-900: #171e2e;
+  --surface-850: #1b2336;
+  --surface-800: #212b40;
+  --surface-700: #273248;
+  --surface-600: #35425c;
+  --surface-500: #4d5b77;
+  --fg-50: #f2f5fb;
+  --fg-100: #e6ebf5;
+  --fg-200: #c9d2e3;
+  --fg-300: #aeb8cc;
+  --fg-400: #98a3b8;
+  --primary-300: #a9c3f8;
+  --primary-400: #93b6f7;
+  --primary-500: #7ba4f4;
+  --primary-600: #5b8def;
+  --on-primary: #0f1420;
+  --success-400: #4cc49a;
+  --danger-400: #ef6f6b;
+  --page-glow: rgb(123 164 244 / 0.08);
 }
 
 @layer base {
@@ -36,48 +92,47 @@
     height: 100%;
   }
   body {
-    @apply bg-ink-950 text-parch-100 font-sans antialiased;
-    background-image:
-      radial-gradient(1200px 600px at 80% -10%, rgb(201 162 39 / 0.07), transparent 60%),
-      radial-gradient(900px 500px at -10% 110%, rgb(79 179 154 / 0.05), transparent 60%);
+    @apply bg-surface-950 text-fg-100 font-sans antialiased;
+    background-image: radial-gradient(1200px 600px at 80% -10%, var(--page-glow), transparent 60%);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   ::selection {
-    @apply bg-gold-500/30;
+    @apply bg-primary-500/30;
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-ink-600) transparent;
+    scrollbar-color: var(--surface-600) transparent;
   }
 }
 
 @utility card {
-  @apply rounded-xl border border-ink-700/80 bg-ink-900/80 backdrop-blur-sm;
+  @apply rounded-xl border border-surface-700/80 bg-surface-900/80 backdrop-blur-sm;
 }
 @utility btn {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition
-    disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500;
+    disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500;
 }
 @utility btn-primary {
-  @apply btn bg-gold-500 text-ink-950 hover:bg-gold-400;
+  @apply btn bg-primary-500 text-on-primary hover:bg-primary-400;
 }
 @utility btn-ghost {
-  @apply btn border border-ink-600 text-parch-200 hover:border-parch-400 hover:bg-ink-800;
+  @apply btn border border-surface-600 text-fg-200 hover:border-fg-400 hover:bg-surface-800;
 }
 @utility btn-danger {
-  @apply btn border border-vermilion-400/40 text-vermilion-400 hover:bg-vermilion-400/10;
+  @apply btn border border-danger-400/40 text-danger-400 hover:bg-danger-400/10;
 }
 @utility input {
-  @apply w-full rounded-lg border border-ink-600 bg-ink-850 px-3 py-2 text-sm text-parch-50 placeholder:text-parch-400/60
-    focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/20;
+  @apply w-full rounded-lg border border-surface-600 bg-surface-850 px-3 py-2 text-sm text-fg-50 placeholder:text-fg-400/60
+    focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20;
 }
 @utility label {
-  @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-parch-400;
+  @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-fg-400;
 }
 @utility chip {
-  @apply inline-flex items-center gap-1 rounded-full border border-ink-600 bg-ink-800 px-2 py-0.5 text-xs text-parch-200;
+  @apply inline-flex items-center gap-1 rounded-full border border-surface-600 bg-surface-800 px-2 py-0.5 text-xs text-fg-200;
 }
 @utility h-display {
-  @apply font-display font-semibold tracking-wide text-parch-50;
+  @apply font-display font-semibold tracking-tight text-fg-50;
 }
 @utility eva {
   @apply font-mono tracking-wide;

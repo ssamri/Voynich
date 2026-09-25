@@ -195,7 +195,8 @@ Functions resteront possibles pour de petites tâches (ex. extraction de texte d
 ### Phase 1 — Fondations
 - [ ] Schéma Supabase (migrations SQL versionnées dans `supabase/migrations`), RLS, buckets Storage
 - [ ] Authentification Supabase (connexion, invitation, déconnexion)
-- [ ] Squelette React : navigation, **thèmes clair/sombre**, palette bleu doux, composants de base
+- [x] **Thèmes clair/sombre** (bouton clair / sombre / système) et palette bleu doux — déjà appliqués au prototype
+- [ ] Squelette React : navigation, composants de base
 
 ### Phase 2 — Fournisseurs et agents
 - [ ] Gestion des fournisseurs (clés dans Vault, test de connexion, liste des modèles)

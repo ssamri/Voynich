@@ -58,8 +58,8 @@ export default function Sessions() {
         }
       />
       {!agents.loading && !activeAgents.length && (
-        <div className="mb-4 rounded-lg border border-gold-500/30 bg-gold-500/5 px-4 py-3 text-sm text-parch-200">
-          Configurez d’abord vos <Link to="/agents" className="text-gold-400 underline">agents</Link>.
+        <div className="mb-4 rounded-lg border border-primary-500/30 bg-primary-500/5 px-4 py-3 text-sm text-fg-200">
+          Configurez d’abord vos <Link to="/agents" className="text-primary-400 underline">agents</Link>.
         </div>
       )}
       <ErrorBox error={sessions.error} />
@@ -72,13 +72,13 @@ export default function Sessions() {
       ) : (
         <div className="space-y-3">
           {sessions.data.map((s) => (
-            <div key={s.id} className="card flex items-center gap-4 p-4 transition hover:border-ink-600">
+            <div key={s.id} className="card flex items-center gap-4 p-4 transition hover:border-surface-600">
               <Link to={`/sessions/${s.id}`} className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-verdigris-400' : 'bg-ink-500'}`} />
+                  <span className={`h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-success-400' : 'bg-surface-500'}`} />
                   <span className="h-display truncate text-xl">{s.title}</span>
                 </div>
-                <p className="mt-1 line-clamp-1 text-sm text-parch-400">{s.objective}</p>
+                <p className="mt-1 line-clamp-1 text-sm text-fg-400">{s.objective}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                   <span className="chip">{s.mode === 'orchestrated' ? 'Dirigée' : 'Table ronde'}</span>
                   <span className="chip">{s.messageCount ?? 0} messages</span>
@@ -104,7 +104,7 @@ export default function Sessions() {
           </Field>
           <div className="flex flex-wrap gap-2">
             {OBJECTIVE_IDEAS.map((o) => (
-              <button key={o} className="chip hover:border-gold-500/50" onClick={() => setForm({ ...form, objective: o, title: form.title || o.split(/[:,.]/)[0].slice(0, 80) })}>
+              <button key={o} className="chip hover:border-primary-500/50" onClick={() => setForm({ ...form, objective: o, title: form.title || o.split(/[:,.]/)[0].slice(0, 80) })}>
                 {o.slice(0, 60)}…
               </button>
             ))}
@@ -135,7 +135,7 @@ export default function Sessions() {
                 return (
                   <button
                     key={a.id}
-                    className={`chip py-1 ${on ? 'border-gold-500/60 text-parch-50' : 'opacity-60'}`}
+                    className={`chip py-1 ${on ? 'border-primary-500/60 text-fg-50' : 'opacity-60'}`}
                     onClick={() => setForm({ ...form, agentIds: on ? form.agentIds.filter((x) => x !== a.id) : [...form.agentIds, a.id] })}
                   >
                     <span className="h-2 w-2 rounded-full" style={{ background: a.color }} />
@@ -148,12 +148,12 @@ export default function Sessions() {
           {!!docs.data?.documents.length && (
             <div>
               <span className="label">Documents de contexte (joints à chaque agent ; images visibles par les modèles)</span>
-              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-ink-700 p-2">
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-surface-700 p-2">
                 {docs.data.documents.map((d) => (
-                  <label key={d.id} className="flex cursor-pointer items-center gap-2 text-sm text-parch-200">
+                  <label key={d.id} className="flex cursor-pointer items-center gap-2 text-sm text-fg-200">
                     <input
                       type="checkbox"
-                      className="accent-gold-500"
+                      className="accent-primary-500"
                       checked={form.contextDocIds.includes(d.id)}
                       onChange={(e) => setForm({ ...form, contextDocIds: e.target.checked ? [...form.contextDocIds, d.id] : form.contextDocIds.filter((x) => x !== d.id) })}
                     />

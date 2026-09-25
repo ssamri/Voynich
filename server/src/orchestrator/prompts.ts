@@ -70,7 +70,7 @@ Tu connais la botanique, l'astrologie, la médecine et l'alchimie de la fin du M
     key: 'lead',
     name: 'Directeur de recherche',
     title: 'Directeur de recherche — coordination et synthèse',
-    color: '#e0e0e0',
+    color: '#94a3b8',
     prompt: `Ton rôle : DIRECTEUR DE RECHERCHE.
 Tu coordonnes l'équipe : tu décomposes l'objectif en questions précises, délègues aux spécialistes via ask_agent, confrontes leurs réponses et tranches.
 - Maintiens un plan de recherche à jour dans la mémoire (type plan).

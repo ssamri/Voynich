@@ -190,20 +190,20 @@ export default function SessionRoom() {
   return (
     <div className="flex h-full flex-col xl:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-3 border-b border-ink-700/80 px-4 py-3 sm:px-6">
-          <Link to="/sessions" className="text-parch-400 hover:text-parch-50" aria-label="Retour">
+        <div className="flex flex-wrap items-center gap-3 border-b border-surface-700/80 px-4 py-3 sm:px-6">
+          <Link to="/sessions" className="text-fg-400 hover:text-fg-50" aria-label="Retour">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
             <h1 className="h-display truncate text-2xl">{session.title}</h1>
-            <div className="flex items-center gap-2 text-xs text-parch-400">
-              <span className={clsx('h-2 w-2 rounded-full', running ? 'animate-pulse bg-verdigris-400' : 'bg-ink-500')} />
+            <div className="flex items-center gap-2 text-xs text-fg-400">
+              <span className={clsx('h-2 w-2 rounded-full', running ? 'animate-pulse bg-success-400' : 'bg-surface-500')} />
               {running ? 'Les agents travaillent…' : session.status === 'stopped' ? 'Interrompue' : 'En attente'}
               <span>· {session.mode === 'orchestrated' ? 'dirigée' : 'table ronde'}</span>
             </div>
           </div>
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
-            <label className="flex items-center gap-2 text-xs text-parch-400">
+            <label className="flex items-center gap-2 text-xs text-fg-400">
               Tours
               <input type="number" min={1} max={20} value={rounds} onChange={(e) => setRounds(Number(e.target.value))} className="input w-16 py-1.5" />
             </label>
@@ -231,18 +231,18 @@ export default function SessionRoom() {
           }}
         >
           <div className="mx-auto max-w-4xl space-y-5">
-            <div className="card border-gold-500/20 p-4">
+            <div className="card border-primary-500/20 p-4">
               <div className="label">Objectif</div>
-              <p className="text-sm text-parch-100">{session.objective}</p>
+              <p className="text-sm text-fg-100">{session.objective}</p>
             </div>
             {messages.length === 0 && (
-              <p className="py-10 text-center text-sm text-parch-400">Lancez la séance ou adressez une première consigne à l’équipe.</p>
+              <p className="py-10 text-center text-sm text-fg-400">Lancez la séance ou adressez une première consigne à l’équipe.</p>
             )}
             {messages.map((m) =>
               m.kind === 'user' ? (
                 <div key={m.id} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl rounded-br-sm border border-gold-500/30 bg-gold-500/10 px-4 py-3">
-                    <div className="mb-1 text-xs font-medium text-gold-300">Chercheur principal · {formatDate(m.created_at)}</div>
+                  <div className="max-w-[85%] rounded-2xl rounded-br-sm border border-primary-500/30 bg-primary-500/10 px-4 py-3">
+                    <div className="mb-1 text-xs font-medium text-primary-300">Chercheur principal · {formatDate(m.created_at)}</div>
                     <Markdown>{m.content}</Markdown>
                   </div>
                 </div>
@@ -253,7 +253,7 @@ export default function SessionRoom() {
           </div>
         </div>
 
-        <div className="border-t border-ink-700/80 p-3 sm:p-4">
+        <div className="border-t border-surface-700/80 p-3 sm:p-4">
           <div className="mx-auto flex max-w-4xl gap-2">
             <textarea
               className="input min-h-[52px] flex-1 resize-y"
@@ -280,20 +280,20 @@ export default function SessionRoom() {
         </div>
       </div>
 
-      <aside className="max-h-[40vh] shrink-0 space-y-5 overflow-y-auto border-t border-ink-700/80 p-4 xl:max-h-none xl:w-80 xl:border-l xl:border-t-0">
+      <aside className="max-h-[40vh] shrink-0 space-y-5 overflow-y-auto border-t border-surface-700/80 p-4 xl:max-h-none xl:w-80 xl:border-l xl:border-t-0">
         <section>
           <div className="label">Participants</div>
           <div className="space-y-2">
             {participants.map((a) => (
               <div key={a.id} className="flex items-center gap-2 text-sm">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-ink-950" style={{ background: a.color }}>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-[#0f1420]" style={{ background: a.color }}>
                   {a.name[0]}
                 </span>
                 <div className="min-w-0">
-                  <div className="truncate text-parch-100">
+                  <div className="truncate text-fg-100">
                     {a.name} {session.mode === 'orchestrated' && session.leadAgentId === a.id && <span className="chip ml-1">directeur</span>}
                   </div>
-                  <div className="truncate font-mono text-[11px] text-parch-400">{a.model}</div>
+                  <div className="truncate font-mono text-[11px] text-fg-400">{a.model}</div>
                 </div>
               </div>
             ))}
@@ -311,8 +311,8 @@ export default function SessionRoom() {
             </button>
           </div>
           {session.summary && (
-            <details className="mt-2 rounded-lg border border-ink-700 p-2 text-xs">
-              <summary className="cursor-pointer text-parch-300">Dernière synthèse</summary>
+            <details className="mt-2 rounded-lg border border-surface-700 p-2 text-xs">
+              <summary className="cursor-pointer text-fg-300">Dernière synthèse</summary>
               <div className="mt-2">
                 <Markdown>{session.summary}</Markdown>
               </div>
@@ -322,9 +322,9 @@ export default function SessionRoom() {
         <section>
           <div className="label">Consommation</div>
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="rounded-lg bg-ink-850 p-2"><div className="font-mono text-parch-50">{formatTokens(totals.in)}</div><div className="text-parch-400">entrée</div></div>
-            <div className="rounded-lg bg-ink-850 p-2"><div className="font-mono text-parch-50">{formatTokens(totals.out)}</div><div className="text-parch-400">sortie</div></div>
-            <div className="rounded-lg bg-ink-850 p-2"><div className="font-mono text-parch-50">{formatTokens(totals.cache)}</div><div className="text-parch-400">cache</div></div>
+            <div className="rounded-lg bg-surface-850 p-2"><div className="font-mono text-fg-50">{formatTokens(totals.in)}</div><div className="text-fg-400">entrée</div></div>
+            <div className="rounded-lg bg-surface-850 p-2"><div className="font-mono text-fg-50">{formatTokens(totals.out)}</div><div className="text-fg-400">sortie</div></div>
+            <div className="rounded-lg bg-surface-850 p-2"><div className="font-mono text-fg-50">{formatTokens(totals.cache)}</div><div className="text-fg-400">cache</div></div>
           </div>
         </section>
         {memories.length > 0 && (
@@ -332,9 +332,9 @@ export default function SessionRoom() {
             <div className="label flex items-center gap-1"><Brain className="h-3.5 w-3.5" /> Mémoire (cette séance)</div>
             <div className="space-y-2">
               {memories.map((m) => (
-                <div key={m.id} className="rounded-lg border border-ink-700 p-2 text-xs">
-                  <div className="text-parch-400">{MEMORY_LABELS[m.type]} · {Math.round(m.confidence * 100)} % · {m.status}</div>
-                  <div className="text-parch-100">{m.title}</div>
+                <div key={m.id} className="rounded-lg border border-surface-700 p-2 text-xs">
+                  <div className="text-fg-400">{MEMORY_LABELS[m.type]} · {Math.round(m.confidence * 100)} % · {m.status}</div>
+                  <div className="text-fg-100">{m.title}</div>
                 </div>
               ))}
             </div>
@@ -349,50 +349,50 @@ function AgentMessage({ m, agent, tools, parent }: { m: LiveMessage; agent?: Age
   const color = agent?.color ?? '#a8966f';
   return (
     <div className="flex gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-base font-bold text-ink-950" style={{ background: color }}>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-base font-bold text-[#0f1420]" style={{ background: color }}>
         {(m.agent_name ?? '?')[0]}
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-baseline gap-x-2 text-xs">
           <span className="font-semibold" style={{ color }}>{m.agent_name}</span>
-          {parent && <span className="text-parch-400">↳ consulté par {parent.agent_name}</span>}
-          {m.model && <span className="font-mono text-parch-400">{m.model}</span>}
+          {parent && <span className="text-fg-400">↳ consulté par {parent.agent_name}</span>}
+          {m.model && <span className="font-mono text-fg-400">{m.model}</span>}
           {!m.streaming && m.output_tokens > 0 && (
-            <span className="text-parch-400">
+            <span className="text-fg-400">
               {formatTokens(m.input_tokens)} → {formatTokens(m.output_tokens)} tok{m.duration_ms ? ` · ${(m.duration_ms / 1000).toFixed(1)} s` : ''}
             </span>
           )}
-          {m.streaming && <Spinner className="h-3 w-3 text-parch-400" />}
+          {m.streaming && <Spinner className="h-3 w-3 text-fg-400" />}
         </div>
         <div className="card border-l-2 px-4 py-3" style={{ borderLeftColor: color }}>
           {m.thinking && (
-            <details className="mb-2 text-xs text-parch-400">
+            <details className="mb-2 text-xs text-fg-400">
               <summary className="cursor-pointer select-none">Raisonnement</summary>
-              <div className="mt-1 whitespace-pre-wrap border-l border-ink-600 pl-3 italic">{m.thinking}</div>
+              <div className="mt-1 whitespace-pre-wrap border-l border-surface-600 pl-3 italic">{m.thinking}</div>
             </details>
           )}
           {tools.length > 0 && (
             <div className="mb-2 space-y-1">
               {tools.map((t) => (
-                <details key={t.key} className="group rounded-md border border-ink-700 bg-ink-850/60 text-xs">
-                  <summary className="flex cursor-pointer select-none items-center gap-2 px-2 py-1.5 text-parch-300">
+                <details key={t.key} className="group rounded-md border border-surface-700 bg-surface-850/60 text-xs">
+                  <summary className="flex cursor-pointer select-none items-center gap-2 px-2 py-1.5 text-fg-300">
                     <ChevronRight className="h-3 w-3 transition group-open:rotate-90" />
-                    <Wrench className="h-3 w-3 text-gold-500" />
+                    <Wrench className="h-3 w-3 text-primary-500" />
                     <span className="font-mono">{t.name}</span>
-                    <span className="truncate text-parch-400">{t.input ? JSON.stringify(t.input).slice(0, 90) : ''}</span>
-                    {t.output === undefined ? <Spinner className="ml-auto h-3 w-3" /> : t.isError ? <AlertTriangle className="ml-auto h-3 w-3 text-vermilion-400" /> : null}
+                    <span className="truncate text-fg-400">{t.input ? JSON.stringify(t.input).slice(0, 90) : ''}</span>
+                    {t.output === undefined ? <Spinner className="ml-auto h-3 w-3" /> : t.isError ? <AlertTriangle className="ml-auto h-3 w-3 text-danger-400" /> : null}
                   </summary>
-                  <div className="space-y-2 border-t border-ink-700 p-2">
-                    {t.input != null && <pre className="max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-parch-300">{JSON.stringify(t.input, null, 2)}</pre>}
-                    {t.output !== undefined && <pre className="max-h-72 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-parch-200">{t.output}</pre>}
+                  <div className="space-y-2 border-t border-surface-700 p-2">
+                    {t.input != null && <pre className="max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-fg-300">{JSON.stringify(t.input, null, 2)}</pre>}
+                    {t.output !== undefined && <pre className="max-h-72 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-fg-200">{t.output}</pre>}
                   </div>
                 </details>
               ))}
             </div>
           )}
-          {m.content ? <Markdown>{m.content}</Markdown> : m.streaming ? <span className="text-sm text-parch-400">…</span> : null}
+          {m.content ? <Markdown>{m.content}</Markdown> : m.streaming ? <span className="text-sm text-fg-400">…</span> : null}
           {m.error && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-vermilion-400">
+            <div className="mt-2 flex items-center gap-2 text-xs text-danger-400">
               <AlertTriangle className="h-3.5 w-3.5" /> {m.error}
             </div>
           )}

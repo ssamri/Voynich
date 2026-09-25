@@ -45,10 +45,10 @@ export default function Dashboard() {
           <h2 className="h-display mb-3 text-xl">Mise en route</h2>
           <div className="grid gap-2 md:grid-cols-2">
             {steps.map((s) => (
-              <Link key={s.to} to={s.to} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-ink-800">
-                {s.done ? <CheckCircle2 className="h-5 w-5 text-verdigris-400" /> : <Circle className="h-5 w-5 text-parch-400" />}
-                <s.icon className="h-4 w-4 text-gold-500/80" />
-                <span className={s.done ? 'text-parch-400 line-through' : 'text-parch-100'}>{s.label}</span>
+              <Link key={s.to} to={s.to} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-surface-800">
+                {s.done ? <CheckCircle2 className="h-5 w-5 text-success-400" /> : <Circle className="h-5 w-5 text-fg-400" />}
+                <s.icon className="h-4 w-4 text-primary-500/80" />
+                <span className={s.done ? 'text-fg-400 line-through' : 'text-fg-100'}>{s.label}</span>
               </Link>
             ))}
           </div>
@@ -66,15 +66,15 @@ export default function Dashboard() {
         <div className="card p-5">
           <h2 className="h-display mb-3 text-xl">Derniers acquis</h2>
           {data.recentMemories.length === 0 ? (
-            <p className="text-sm text-parch-400">Aucun élément en mémoire pour l’instant.</p>
+            <p className="text-sm text-fg-400">Aucun élément en mémoire pour l’instant.</p>
           ) : (
             <ul className="space-y-2">
               {data.recentMemories.map((m) => (
                 <li key={m.id} className="flex items-start gap-3 text-sm">
                   <span className="chip shrink-0">{MEMORY_LABELS[m.type]}</span>
                   <div className="min-w-0">
-                    <div className={`truncate ${m.status === 'refuted' ? 'text-parch-400 line-through' : 'text-parch-100'}`}>{m.title}</div>
-                    <div className="text-xs text-parch-400">
+                    <div className={`truncate ${m.status === 'refuted' ? 'text-fg-400 line-through' : 'text-fg-100'}`}>{m.title}</div>
+                    <div className="text-xs text-fg-400">
                       {Math.round(m.confidence * 100)} % · {m.author_label ?? '—'} · {formatDate(m.updated_at)}
                     </div>
                   </div>
@@ -83,7 +83,7 @@ export default function Dashboard() {
             </ul>
           )}
           {byType.size > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5 border-t border-ink-700 pt-3">
+            <div className="mt-4 flex flex-wrap gap-1.5 border-t border-surface-700 pt-3">
               {[...byType.entries()].map(([t, n]) => (
                 <span key={t} className="chip">{MEMORY_LABELS[t as MemoryType] ?? t} · {n}</span>
               ))}
@@ -94,11 +94,11 @@ export default function Dashboard() {
         <div className="card p-5">
           <h2 className="h-display mb-3 text-xl">Consommation par agent</h2>
           {data.usageByAgent.length === 0 ? (
-            <p className="text-sm text-parch-400">Aucune intervention pour l’instant.</p>
+            <p className="text-sm text-fg-400">Aucune intervention pour l’instant.</p>
           ) : (
             <>
               <table className="w-full text-sm">
-                <thead className="text-xs text-parch-400">
+                <thead className="text-xs text-fg-400">
                   <tr>
                     <th className="pb-2 text-left font-medium">Agent</th>
                     <th className="pb-2 text-right font-medium">Tours</th>
@@ -109,23 +109,23 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {data.usageByAgent.map((u, i) => (
-                    <tr key={i} className="border-t border-ink-700/60">
+                    <tr key={i} className="border-t border-surface-700/60">
                       <td className="py-1.5">
                         <div className="flex items-center gap-2">
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: u.color ?? '#a8966f' }} />
-                          <span className="text-parch-100">{u.name}</span>
+                          <span className="text-fg-100">{u.name}</span>
                         </div>
-                        <div className="font-mono text-[11px] text-parch-400">{u.model}</div>
+                        <div className="font-mono text-[11px] text-fg-400">{u.model}</div>
                       </td>
-                      <td className="text-right font-mono text-parch-200">{u.turns}</td>
-                      <td className="text-right font-mono text-parch-200">{formatTokens(u.input_tokens)}</td>
-                      <td className="text-right font-mono text-parch-200">{formatTokens(u.output_tokens)}</td>
-                      <td className="text-right font-mono text-parch-400">{u.input_tokens ? Math.round((u.cache_read_tokens / u.input_tokens) * 100) : 0} %</td>
+                      <td className="text-right font-mono text-fg-200">{u.turns}</td>
+                      <td className="text-right font-mono text-fg-200">{formatTokens(u.input_tokens)}</td>
+                      <td className="text-right font-mono text-fg-200">{formatTokens(u.output_tokens)}</td>
+                      <td className="text-right font-mono text-fg-400">{u.input_tokens ? Math.round((u.cache_read_tokens / u.input_tokens) * 100) : 0} %</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="mt-3 text-xs text-parch-400">Total : {formatTokens(totalIn)} tokens en entrée, {formatTokens(totalOut)} en sortie.</p>
+              <p className="mt-3 text-xs text-fg-400">Total : {formatTokens(totalIn)} tokens en entrée, {formatTokens(totalOut)} en sortie.</p>
             </>
           )}
         </div>
@@ -136,10 +136,10 @@ export default function Dashboard() {
           <h2 className="h-display mb-3 text-xl">Séances récentes</h2>
           <div className="grid gap-2 md:grid-cols-2">
             {data.recentSessions.map((s) => (
-              <Link key={s.id} to={`/sessions/${s.id}`} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-ink-800">
-                <span className={`h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-verdigris-400' : 'bg-ink-500'}`} />
-                <span className="flex-1 truncate text-parch-100">{s.title}</span>
-                <span className="text-xs text-parch-400">{formatDate(s.updated_at)}</span>
+              <Link key={s.id} to={`/sessions/${s.id}`} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-surface-800">
+                <span className={`h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-success-400' : 'bg-surface-500'}`} />
+                <span className="flex-1 truncate text-fg-100">{s.title}</span>
+                <span className="text-xs text-fg-400">{formatDate(s.updated_at)}</span>
               </Link>
             ))}
           </div>

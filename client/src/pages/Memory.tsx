@@ -10,10 +10,10 @@ import Markdown from '../components/Markdown';
 type Draft = Partial<Memory> & { type: MemoryType; title: string; content: string };
 
 const STATUS_STYLE: Record<MemoryStatus, string> = {
-  active: 'text-parch-200 border-ink-600',
-  confirmed: 'text-verdigris-400 border-verdigris-400/40',
-  refuted: 'text-vermilion-400 border-vermilion-400/40 line-through',
-  archived: 'text-parch-400 border-ink-600',
+  active: 'text-fg-200 border-surface-600',
+  confirmed: 'text-success-400 border-success-400/40',
+  refuted: 'text-danger-400 border-danger-400/40 line-through',
+  archived: 'text-fg-400 border-surface-600',
 };
 
 export default function MemoryPage() {
@@ -65,13 +65,13 @@ export default function MemoryPage() {
       />
       <div className="mb-4 flex flex-wrap gap-2">
         <div className="relative min-w-60 flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-parch-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-fg-400" />
           <input className="input pl-9" placeholder="Rechercher…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <div className="flex flex-wrap gap-1">
-          <button className={clsx('chip py-1', !type && 'border-gold-500/60 text-parch-50')} onClick={() => setType('')}>Tout</button>
+          <button className={clsx('chip py-1', !type && 'border-primary-500/60 text-fg-50')} onClick={() => setType('')}>Tout</button>
           {(Object.keys(MEMORY_LABELS) as MemoryType[]).map((t) => (
-            <button key={t} className={clsx('chip py-1', type === t && 'border-gold-500/60 text-parch-50')} onClick={() => setType(t)}>
+            <button key={t} className={clsx('chip py-1', type === t && 'border-primary-500/60 text-fg-50')} onClick={() => setType(t)}>
               {MEMORY_LABELS[t]}
             </button>
           ))}
@@ -87,32 +87,32 @@ export default function MemoryPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {mem.data.map((m) => (
-            <div key={m.id} className={clsx('card flex flex-col p-4', m.pinned && 'border-gold-500/40')}>
+            <div key={m.id} className={clsx('card flex flex-col p-4', m.pinned && 'border-primary-500/40')}>
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 text-xs">
                     <span className="chip">{MEMORY_LABELS[m.type]}</span>
                     <span className={clsx('chip', STATUS_STYLE[m.status])}>{STATUS_LABELS[m.status]}</span>
-                    <span className="text-parch-400">#{m.id}</span>
+                    <span className="text-fg-400">#{m.id}</span>
                   </div>
-                  <button className="mt-2 text-left font-medium text-parch-50 hover:text-gold-300" onClick={() => setDraft({ ...m })}>
+                  <button className="mt-2 text-left font-medium text-fg-50 hover:text-primary-300" onClick={() => setDraft({ ...m })}>
                     {m.title}
                   </button>
                 </div>
-                <button onClick={() => togglePin(m)} className="rounded p-1 text-parch-400 hover:text-gold-400" title={m.pinned ? 'Désépingler' : 'Épingler'}>
+                <button onClick={() => togglePin(m)} className="rounded p-1 text-fg-400 hover:text-primary-400" title={m.pinned ? 'Désépingler' : 'Épingler'}>
                   {m.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                 </button>
               </div>
               <div className="mt-2 line-clamp-6 text-sm">
                 <Markdown>{m.content}</Markdown>
               </div>
-              <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-parch-400">
-                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-ink-700" title={`Confiance ${Math.round(m.confidence * 100)} %`}>
-                  <div className="h-full rounded-full bg-gold-500" style={{ width: `${m.confidence * 100}%` }} />
+              <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-fg-400">
+                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-700" title={`Confiance ${Math.round(m.confidence * 100)} %`}>
+                  <div className="h-full rounded-full bg-primary-500" style={{ width: `${m.confidence * 100}%` }} />
                 </div>
                 {Math.round(m.confidence * 100)} %
                 <span className="truncate">· {m.author_label ?? '—'} · {formatDate(m.updated_at)}</span>
-                <button onClick={() => remove(m)} className="ml-auto rounded p-1 hover:text-vermilion-400" aria-label="Supprimer">
+                <button onClick={() => remove(m)} className="ml-auto rounded p-1 hover:text-danger-400" aria-label="Supprimer">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -136,7 +136,7 @@ export default function MemoryPage() {
                 </select>
               </Field>
               <Field label={`Confiance : ${Math.round((draft.confidence ?? 0.5) * 100)} %`}>
-                <input type="range" min={0} max={1} step={0.05} className="w-full accent-gold-500" value={draft.confidence ?? 0.5} onChange={(e) => setDraft({ ...draft, confidence: Number(e.target.value) })} />
+                <input type="range" min={0} max={1} step={0.05} className="w-full accent-primary-500" value={draft.confidence ?? 0.5} onChange={(e) => setDraft({ ...draft, confidence: Number(e.target.value) })} />
               </Field>
             </div>
             <Field label="Titre">

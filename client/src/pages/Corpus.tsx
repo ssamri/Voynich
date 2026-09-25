@@ -53,17 +53,17 @@ export default function Corpus() {
         subtitle="Transcription du manuscrit en alphabet EVA (format IVTFF) : consultation par folio, recherche, statistiques et tests de substitution — les mêmes outils que ceux mis à disposition des agents."
       />
       {info.data && loaded && (
-        <p className="-mt-3 mb-5 text-xs text-parch-400">
+        <p className="-mt-3 mb-5 text-xs text-fg-400">
           Source : {info.data.source} · transcripteur {info.data.transcriber} · {info.data.pages} folios · {info.data.lines.toLocaleString('fr-FR')} lignes
         </p>
       )}
-      <div className="mb-6 flex flex-wrap gap-1 border-b border-ink-700">
+      <div className="mb-6 flex flex-wrap gap-1 border-b border-surface-700">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             disabled={!loaded && t !== 'Import'}
-            className={clsx('-mb-px border-b-2 px-4 py-2 text-sm transition disabled:opacity-40', tab === t ? 'border-gold-500 text-gold-300' : 'border-transparent text-parch-300 hover:text-parch-50')}
+            className={clsx('-mb-px border-b-2 px-4 py-2 text-sm transition disabled:opacity-40', tab === t ? 'border-primary-500 text-primary-300' : 'border-transparent text-fg-300 hover:text-fg-50')}
           >
             {t}
           </button>
@@ -162,14 +162,14 @@ function AnalysisTab({ sections }: { sections: Record<string, string> }) {
                   </select>
                 </div>
               </div>
-              <p className="mb-2 text-xs text-parch-400">« _ » marque le début ou la fin d’un mot.</p>
+              <p className="mb-2 text-xs text-fg-400">« _ » marque le début ou la fin d’un mot.</p>
               {ng.data ? <HBarChart data={ng.data.slice(0, 25).map((g) => ({ label: g.gram, value: g.count }))} /> : <Spinner />}
             </div>
             <div className="card p-4">
               <h3 className="h-display mb-1 text-xl">Position des glyphes dans le mot</h3>
-              <p className="mb-3 text-xs text-parch-400">Part des occurrences en début / milieu / fin de mot. Une forte spécialisation positionnelle est une signature du texte voynichien.</p>
+              <p className="mb-3 text-xs text-fg-400">Part des occurrences en début / milieu / fin de mot. Une forte spécialisation positionnelle est une signature du texte voynichien.</p>
               <table className="w-full text-xs">
-                <thead className="text-parch-400">
+                <thead className="text-fg-400">
                   <tr>
                     <th className="py-1 text-left font-medium">Glyphe</th>
                     <th className="py-1 text-right font-medium">Début</th>
@@ -180,14 +180,14 @@ function AnalysisTab({ sections }: { sections: Record<string, string> }) {
                 </thead>
                 <tbody>
                   {pos.data?.slice(0, 20).map((p) => (
-                    <tr key={p.char} className="border-t border-ink-700/60">
-                      <td className="eva py-1 text-parch-50">{p.char}</td>
+                    <tr key={p.char} className="border-t border-surface-700/60">
+                      <td className="eva py-1 text-fg-50">{p.char}</td>
                       {[p.initial, p.medial, p.final].map((v, i) => (
-                        <td key={i} className="py-1 text-right font-mono tabular-nums text-parch-200">
-                          <span className="inline-block rounded px-1" style={{ background: `rgb(201 162 39 / ${(v / p.total) * 0.55})` }}>{Math.round((v / p.total) * 100)} %</span>
+                        <td key={i} className="py-1 text-right font-mono tabular-nums text-fg-200">
+                          <span className="inline-block rounded px-1" style={{ background: `color-mix(in srgb, var(--primary-500) ${Math.round((v / p.total) * 55)}%, transparent)` }}>{Math.round((v / p.total) * 100)} %</span>
                         </td>
                       ))}
-                      <td className="py-1 text-right font-mono tabular-nums text-parch-400">{p.total.toLocaleString('fr-FR')}</td>
+                      <td className="py-1 text-right font-mono tabular-nums text-fg-400">{p.total.toLocaleString('fr-FR')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -218,9 +218,9 @@ function FoliosTab({ sections }: { sections: Record<string, string> }) {
       <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
         <div className="card max-h-[70vh] overflow-y-auto p-2">
           {list.map((p) => (
-            <button key={p.folio} onClick={() => setSel(p.folio)} className={clsx('flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm', sel === p.folio ? 'bg-gold-500/15 text-gold-300' : 'text-parch-200 hover:bg-ink-800')}>
+            <button key={p.folio} onClick={() => setSel(p.folio)} className={clsx('flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm', sel === p.folio ? 'bg-primary-500/15 text-primary-300' : 'text-fg-200 hover:bg-surface-800')}>
               <span className="font-mono">{p.folio}</span>
-              <span className="text-[11px] text-parch-400">
+              <span className="text-[11px] text-fg-400">
                 {p.illustration ?? '?'} · {p.language ?? '?'} · {p.line_count}
               </span>
             </button>
@@ -237,15 +237,15 @@ function FoliosTab({ sections }: { sections: Record<string, string> }) {
                 {page.data.page.language && <span className="chip">Langue {page.data.page.language}</span>}
                 {page.data.page.hand && <span className="chip">Main {page.data.page.hand}</span>}
                 {page.data.page.quire && <span className="chip">Cahier {page.data.page.quire}</span>}
-                <label className="ml-auto flex items-center gap-2 text-xs text-parch-400">
-                  <input type="checkbox" className="accent-gold-500" checked={raw} onChange={(e) => setRaw(e.target.checked)} /> IVTFF brut
+                <label className="ml-auto flex items-center gap-2 text-xs text-fg-400">
+                  <input type="checkbox" className="accent-primary-500" checked={raw} onChange={(e) => setRaw(e.target.checked)} /> IVTFF brut
                 </label>
               </div>
               <div className="space-y-1">
                 {page.data.lines.map((l) => (
                   <div key={l.locus} className="grid grid-cols-[5.5rem_1fr] gap-3 text-sm">
-                    <span className="font-mono text-xs text-parch-400">{l.locus}</span>
-                    <span className="eva break-words text-parch-100">{raw ? l.raw : l.text}</span>
+                    <span className="font-mono text-xs text-fg-400">{l.locus}</span>
+                    <span className="eva break-words text-fg-100">{raw ? l.raw : l.text}</span>
                   </div>
                 ))}
               </div>
@@ -276,11 +276,11 @@ function SearchTab({ sections }: { sections: Record<string, string> }) {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <div className="relative min-w-64 flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-parch-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-fg-400" />
           <input className="input eva pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="mot EVA ou expression régulière" />
         </div>
-        <label className="flex items-center gap-2 text-sm text-parch-300">
-          <input type="checkbox" className="accent-gold-500" checked={regex} onChange={(e) => setRegex(e.target.checked)} /> Regex
+        <label className="flex items-center gap-2 text-sm text-fg-300">
+          <input type="checkbox" className="accent-primary-500" checked={regex} onChange={(e) => setRegex(e.target.checked)} /> Regex
         </label>
       </div>
       <FilterBar value={filter} onChange={setFilter} sections={sections} />
@@ -291,10 +291,10 @@ function SearchTab({ sections }: { sections: Record<string, string> }) {
           <div className="space-y-1">
             {res.data.hits.map((h) => (
               <div key={h.locus} className="grid grid-cols-[6rem_1fr] gap-3 text-sm">
-                <span className="font-mono text-xs text-parch-400">{h.locus}</span>
-                <span className="eva text-parch-200">
+                <span className="font-mono text-xs text-fg-400">{h.locus}</span>
+                <span className="eva text-fg-200">
                   {highlight
-                    ? h.text.split(highlight).map((part, i) => (i % 2 === 1 ? <mark key={i} className="rounded bg-gold-500/30 px-0.5 text-parch-50">{part}</mark> : part))
+                    ? h.text.split(highlight).map((part, i) => (i % 2 === 1 ? <mark key={i} className="rounded bg-primary-500/30 px-0.5 text-fg-50">{part}</mark> : part))
                     : h.text}
                 </span>
               </div>
@@ -317,7 +317,7 @@ function CompareTab({ sections }: { sections: Record<string, string> }) {
   type Row = { word: string; a: number; b: number; score: number };
   const table = (rows: Row[]) => (
     <table className="w-full text-xs">
-      <thead className="text-parch-400">
+      <thead className="text-fg-400">
         <tr>
           <th className="py-1 text-left font-medium">Mot</th>
           <th className="py-1 text-right font-medium">A</th>
@@ -327,11 +327,11 @@ function CompareTab({ sections }: { sections: Record<string, string> }) {
       </thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.word} className="border-t border-ink-700/60">
-            <td className="eva py-1 text-parch-50">{r.word}</td>
-            <td className="py-1 text-right font-mono text-parch-200">{r.a}</td>
-            <td className="py-1 text-right font-mono text-parch-200">{r.b}</td>
-            <td className="py-1 text-right font-mono text-parch-400">{r.score.toFixed(2)}</td>
+          <tr key={r.word} className="border-t border-surface-700/60">
+            <td className="eva py-1 text-fg-50">{r.word}</td>
+            <td className="py-1 text-right font-mono text-fg-200">{r.a}</td>
+            <td className="py-1 text-right font-mono text-fg-200">{r.b}</td>
+            <td className="py-1 text-right font-mono text-fg-400">{r.score.toFixed(2)}</td>
           </tr>
         ))}
       </tbody>
@@ -353,11 +353,11 @@ function CompareTab({ sections }: { sections: Record<string, string> }) {
       {res.data && (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="card p-4">
-            <h3 className="h-display mb-2 text-xl">Surreprésentés dans A <span className="text-sm text-parch-400">({res.data.tokensA.toLocaleString('fr-FR')} mots)</span></h3>
+            <h3 className="h-display mb-2 text-xl">Surreprésentés dans A <span className="text-sm text-fg-400">({res.data.tokensA.toLocaleString('fr-FR')} mots)</span></h3>
             {table(res.data.moreInA)}
           </div>
           <div className="card p-4">
-            <h3 className="h-display mb-2 text-xl">Surreprésentés dans B <span className="text-sm text-parch-400">({res.data.tokensB.toLocaleString('fr-FR')} mots)</span></h3>
+            <h3 className="h-display mb-2 text-xl">Surreprésentés dans B <span className="text-sm text-fg-400">({res.data.tokensB.toLocaleString('fr-FR')} mots)</span></h3>
             {table(res.data.moreInB)}
           </div>
         </div>
@@ -396,13 +396,13 @@ function SubstitutionTab() {
       </div>
       <div className="card p-4">
         {!out ? (
-          <p className="text-sm text-parch-400">Le résultat s’affiche ici, ligne EVA d’origine au-dessus, transformation en dessous.</p>
+          <p className="text-sm text-fg-400">Le résultat s’affiche ici, ligne EVA d’origine au-dessus, transformation en dessous.</p>
         ) : (
           <div className="space-y-3">
             {out.map((l, i) => (
               <div key={i}>
-                <div className="eva text-xs text-parch-400">{l.source}</div>
-                <div className="eva text-sm text-parch-50">{l.output}</div>
+                <div className="eva text-xs text-fg-400">{l.source}</div>
+                <div className="eva text-sm text-fg-50">{l.output}</div>
               </div>
             ))}
           </div>
@@ -436,10 +436,10 @@ function ImportTab({ info, onDone }: { info: CorpusInfo; onDone: () => void }) {
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="card space-y-4 p-5">
         <div className="flex items-center gap-2">
-          <Download className="h-5 w-5 text-gold-500" />
+          <Download className="h-5 w-5 text-primary-500" />
           <h3 className="h-display text-xl">Importer depuis une URL</h3>
         </div>
-        <p className="text-sm text-parch-400">
+        <p className="text-sm text-fg-400">
           Les translittérations de référence au format IVTFF sont publiées par René Zandbergen sur voynich.nu (ex. Zandbergen-Landini <span className="font-mono">ZL3b-n.txt</span>, Landini-Stolfi <span className="font-mono">LSI_ivtff_0d.txt</span>). Vérifiez leurs conditions d’utilisation.
         </p>
         <Field label="URL du fichier IVTFF">
@@ -454,15 +454,15 @@ function ImportTab({ info, onDone }: { info: CorpusInfo; onDone: () => void }) {
       </div>
       <div className="card space-y-4 p-5">
         <div className="flex items-center gap-2">
-          <Upload className="h-5 w-5 text-gold-500" />
+          <Upload className="h-5 w-5 text-primary-500" />
           <h3 className="h-display text-xl">Importer un fichier</h3>
         </div>
-        <p className="text-sm text-parch-400">Chargez un fichier IVTFF téléchargé manuellement. L’import remplace le corpus actuel.</p>
+        <p className="text-sm text-fg-400">Chargez un fichier IVTFF téléchargé manuellement. L’import remplace le corpus actuel.</p>
         <input
           type="file"
           accept=".txt,.ivtff,.eva"
           disabled={busy}
-          className="block text-sm text-parch-300 file:mr-3 file:rounded-lg file:border-0 file:bg-gold-500 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink-950"
+          className="block text-sm text-fg-300 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-500 file:px-3 file:py-2 file:text-sm file:font-medium file:text-on-primary"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (!f) return;
@@ -473,8 +473,8 @@ function ImportTab({ info, onDone }: { info: CorpusInfo; onDone: () => void }) {
           }}
         />
         {info.lines > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-ink-850 p-3 text-sm text-parch-300">
-            <ScrollText className="h-4 w-4 text-gold-500" /> Corpus actuel : {info.pages} folios, {info.lines.toLocaleString('fr-FR')} lignes.
+          <div className="flex items-center gap-2 rounded-lg bg-surface-850 p-3 text-sm text-fg-300">
+            <ScrollText className="h-4 w-4 text-primary-500" /> Corpus actuel : {info.pages} folios, {info.lines.toLocaleString('fr-FR')} lignes.
           </div>
         )}
       </div>

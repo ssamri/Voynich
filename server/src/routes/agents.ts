@@ -35,7 +35,7 @@ const agentInput = z.object({
   temperature: z.number().min(0).max(2).nullable().default(null),
   maxTokens: z.number().int().min(256).max(128000).default(16000),
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).nullable().default('high'),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#c9a227'),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#5b8def'),
   tools: z.array(z.enum(toolKeys)).default([...toolKeys]),
   webSearch: z.boolean().default(false),
   enabled: z.boolean().default(true),
