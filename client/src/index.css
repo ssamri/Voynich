@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Encre et vélin */
+  --color-ink-950: #0d0b09;
+  --color-ink-900: #14110e;
+  --color-ink-850: #1a1612;
+  --color-ink-800: #211c17;
+  --color-ink-700: #2d261f;
+  --color-ink-600: #3d342a;
+  --color-ink-500: #5a4d3f;
+  --color-parch-50: #fbf7ee;
+  --color-parch-100: #f3ead6;
+  --color-parch-200: #e6d8b8;
+  --color-parch-300: #cdb993;
+  --color-parch-400: #a8966f;
+  --color-gold-300: #e6c65a;
+  --color-gold-400: #d6b13a;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a3821a;
+  --color-verdigris-400: #4fb39a;
+  --color-vermilion-400: #e0694a;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink-950 text-parch-100 font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, rgb(201 162 39 / 0.07), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgb(79 179 154 / 0.05), transparent 60%);
+  }
+  ::selection {
+    @apply bg-gold-500/30;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-600) transparent;
+  }
+}
+
+@utility card {
+  @apply rounded-xl border border-ink-700/80 bg-ink-900/80 backdrop-blur-sm;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition
+    disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500;
+}
+@utility btn-primary {
+  @apply btn bg-gold-500 text-ink-950 hover:bg-gold-400;
+}
+@utility btn-ghost {
+  @apply btn border border-ink-600 text-parch-200 hover:border-parch-400 hover:bg-ink-800;
+}
+@utility btn-danger {
+  @apply btn border border-vermilion-400/40 text-vermilion-400 hover:bg-vermilion-400/10;
+}
+@utility input {
+  @apply w-full rounded-lg border border-ink-600 bg-ink-850 px-3 py-2 text-sm text-parch-50 placeholder:text-parch-400/60
+    focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/20;
+}
+@utility label {
+  @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-parch-400;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-ink-600 bg-ink-800 px-2 py-0.5 text-xs text-parch-200;
+}
+@utility h-display {
+  @apply font-display font-semibold tracking-wide text-parch-50;
+}
+@utility eva {
+  @apply font-mono tracking-wide;
+}

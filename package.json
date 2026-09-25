@@ -1,0 +1,20 @@
+{
+  "name": "voynich-lab",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Laboratoire multi-agents (Claude, ChatGPT…) pour l'étude et le déchiffrement du manuscrit de Voynich",
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "NODE_ENV=production npm run start -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "test": "npm test -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
