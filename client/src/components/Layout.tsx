@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import clsx from 'clsx';
-import { BookOpen, Bot, Brain, LayoutDashboard, LogOut, Menu, MessagesSquare, PlugZap, ScrollText, Settings, X } from 'lucide-react';
+import { BookOpen, Bot, Brain, FlaskConical, Image, LayoutDashboard, LogOut, Menu, MessagesSquare, PlugZap, ScrollText, Settings, X } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import ThemeToggle from './ThemeToggle';
 
 const NAV = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
   { to: '/sessions', label: 'Séances de recherche', icon: MessagesSquare },
+  { to: '/lab', label: 'Laboratoire', icon: FlaskConical },
+  { to: '/manuscript', label: 'Manuscrit', icon: Image },
   { to: '/corpus', label: 'Corpus EVA', icon: ScrollText },
   { to: '/library', label: 'Bibliothèque', icon: BookOpen },
   { to: '/memory', label: 'Mémoire', icon: Brain },

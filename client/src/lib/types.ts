@@ -99,6 +99,7 @@ export interface Memory {
   pinned: number;
   author_label: string | null;
   session_id: number | null;
+  evidence?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -107,13 +108,14 @@ export interface ResearchSession {
   id: number;
   title: string;
   objective: string;
-  mode: 'roundtable' | 'orchestrated';
+  mode: 'roundtable' | 'orchestrated' | 'cycle';
   agentIds: number[];
   leadAgentId: number | null;
   roundsPerRun: number;
   contextDocIds: number[];
   status: string;
   summary: string | null;
+  tokenBudget?: number | null;
   messageCount?: number;
   tokens?: number;
   updatedAt?: string;

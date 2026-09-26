@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
-import { Bot, BookOpen, Brain, CheckCircle2, Circle, MessagesSquare, PlugZap, ScrollText } from 'lucide-react';
+import { Bot, BookOpen, Brain, CheckCircle2, Circle, FlaskConical, MessagesSquare, PlugZap, ScrollText } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatDate, formatTokens, useFetch } from '../lib/hooks';
 import { MEMORY_LABELS, type MemoryType } from '../lib/types';
 import { ErrorBox, PageHeader, Spinner, StatTile } from '../components/ui';
 
 interface DashboardData {
-  counts: { providers: number; agents: number; documents: number; memories: number; sessions: number; messages: number };
+  counts: { providers: number; agents: number; documents: number; memories: number; sessions: number; messages: number; experiments: number; passes: number; refs: number };
+  lastReport: { id: number; title: string; created_at: string } | null;
   memoryByType: { type: MemoryType; status: string; n: number }[];
   usageByAgent: { id: number | null; name: string; color: string | null; model: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; turns: number; avg_ms: number }[];
   recentMemories: { id: number; type: MemoryType; title: string; confidence: number; status: string; author_label: string | null; updated_at: string }[];
@@ -24,6 +25,8 @@ export default function Dashboard() {
     { done: c.providers > 0, label: 'Connecter Claude et ChatGPT', to: '/providers', icon: PlugZap },
     { done: c.agents >= 2, label: 'Configurer au moins deux agents et leurs rôles', to: '/agents', icon: Bot },
     { done: data.corpus.lines > 0, label: 'Importer la transcription EVA du manuscrit', to: '/corpus', icon: ScrollText },
+    { done: c.memories > 0, label: 'Charger le socle de connaissances (page Mémoire)', to: '/memory', icon: Brain },
+    { done: c.refs >= 3, label: 'Ajouter des corpus de comparaison et des textes de contrôle', to: '/lab', icon: FlaskConical },
     { done: c.documents > 0, label: 'Alimenter la bibliothèque (articles, notes, images)', to: '/library', icon: BookOpen },
     { done: c.sessions > 0, label: 'Lancer une première séance de recherche', to: '/sessions', icon: MessagesSquare },
   ];
@@ -55,10 +58,21 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {data.lastReport && (
+        <Link to="/library" className="card mb-4 flex items-center gap-3 border-primary-500/30 p-4 hover:border-primary-500/60">
+          <FlaskConical className="h-5 w-5 text-primary-500" />
+          <div className="text-sm">
+            <div className="font-medium text-fg-50">{data.lastReport.title}</div>
+            <div className="text-xs text-fg-400">Dernier rapport de campagne · {formatDate(data.lastReport.created_at)}</div>
+          </div>
+        </Link>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatTile label="Agents actifs" value={c.agents} hint={`${c.providers} connexion(s) IA`} icon={<Bot className="h-4 w-4" />} />
         <StatTile label="Séances" value={c.sessions} hint={`${c.messages} interventions d’agents`} icon={<MessagesSquare className="h-4 w-4" />} />
         <StatTile label="Mémoire" value={c.memories} hint={`${confirmed} confirmée(s) · ${refuted} réfutée(s)`} icon={<Brain className="h-4 w-4" />} />
+        <StatTile label="Expériences" value={c.experiments} hint={`${c.passes} verdict(s) PASS du juge`} icon={<FlaskConical className="h-4 w-4" />} />
         <StatTile label="Bibliothèque" value={c.documents} hint={data.corpus.lines ? `corpus : ${data.corpus.pages} folios` : 'corpus non importé'} icon={<BookOpen className="h-4 w-4" />} />
       </div>
 

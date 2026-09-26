@@ -170,15 +170,25 @@ export class OpenAIProvider implements LLMProvider {
           } catch {
             const output = `Arguments JSON invalides : ${c.arguments.slice(0, 200)}`;
             events.onToolResult({ id: c.call_id, name: c.name, output, isError: true });
-            return { call_id: c.call_id, output };
+            return { call_id: c.call_id, output, images: [] as { mediaType: string; data: string }[] };
           }
           events.onToolCall({ id: c.call_id, name: c.name, input: parsed });
-          const { output, isError } = await executeTool(req.tools, c.name, parsed);
-          events.onToolResult({ id: c.call_id, name: c.name, output, isError });
-          return { call_id: c.call_id, output };
+          const { output, images, isError } = await executeTool(req.tools, c.name, parsed);
+          events.onToolResult({ id: c.call_id, name: c.name, output: images.length ? `${output}\n[${images.length} image(s) transmise(s) au modèle]` : output, isError });
+          return { call_id: c.call_id, output, images };
         }),
       );
-      for (const r of results) input.push({ type: 'function_call_output', call_id: r.call_id, output: r.output });
+      for (const r of results)
+        input.push({
+          type: 'function_call_output',
+          call_id: r.call_id,
+          output: r.images.length
+            ? [
+                { type: 'input_text', text: r.output },
+                ...r.images.map((im) => ({ type: 'input_image' as const, image_url: `data:${im.mediaType};base64,${im.data}`, detail: 'high' as const })),
+              ]
+            : r.output,
+        });
     }
 
     if (sources.size) {
@@ -274,15 +284,25 @@ export class OpenAIProvider implements LLMProvider {
           } catch {
             const output = `Arguments JSON invalides : ${c.args.slice(0, 200)}`;
             events.onToolResult({ id: c.id, name: c.name, output, isError: true });
-            return { id: c.id, output };
+            return { id: c.id, output, images: [] as { mediaType: string; data: string }[] };
           }
           events.onToolCall({ id: c.id, name: c.name, input });
-          const { output, isError } = await executeTool(req.tools, c.name, input);
-          events.onToolResult({ id: c.id, name: c.name, output, isError });
-          return { id: c.id, output };
+          const { output, images, isError } = await executeTool(req.tools, c.name, input);
+          events.onToolResult({ id: c.id, name: c.name, output: images.length ? `${output}\n[${images.length} image(s) transmise(s) au modèle]` : output, isError });
+          return { id: c.id, output, images };
         }),
       );
       for (const r of results) messages.push({ role: 'tool', tool_call_id: r.id, content: r.output });
+      // Chat Completions n'accepte pas d'image dans un message d'outil : on les joint dans un message utilisateur.
+      const imgs = results.flatMap((r) => r.images);
+      if (imgs.length)
+        messages.push({
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Images renvoyées par les outils ci-dessus :' },
+            ...imgs.map((im) => ({ type: 'image_url' as const, image_url: { url: `data:${im.mediaType};base64,${im.data}` } })),
+          ],
+        });
     }
 
     return { text, thinking: '', usage, model: servedModel, stopReason };

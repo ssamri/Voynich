@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, Download, Pin, PinOff, Plus, Search, Trash2 } from 'lucide-react';
+import { BookMarked, Brain, Download, Pin, PinOff, Plus, Search, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import { api, qs } from '../lib/api';
 import { formatDate, useDebounced, useFetch } from '../lib/hooks';
@@ -54,6 +54,17 @@ export default function MemoryPage() {
         subtitle="Le carnet de laboratoire commun aux agents : hypothèses, découvertes, impasses, glossaire, questions et plans. Les éléments épinglés sont rappelés à chaque tour ; les autres sont retrouvés par pertinence."
         actions={
           <>
+            <button
+              className="btn-ghost"
+              title="Faits établis, impasses connues, hypothèses ouvertes et bibliographie issus d’un siècle de recherche"
+              onClick={async () => {
+                const r = await api.post<{ created: number; bibliography: boolean }>('/memory/seed');
+                toast.ok(r.created ? `${r.created} éléments ajoutés${r.bibliography ? ' + bibliographie dans la bibliothèque' : ''}.` : 'Le socle est déjà chargé.');
+                mem.reload();
+              }}
+            >
+              <BookMarked className="h-4 w-4" /> Socle de connaissances
+            </button>
             <a className="btn-ghost" href="/api/memory/export">
               <Download className="h-4 w-4" /> Exporter
             </a>
@@ -82,7 +93,7 @@ export default function MemoryPage() {
         <Spinner />
       ) : !mem.data?.length ? (
         <Empty icon={<Brain className="h-10 w-10" />} title="Mémoire vide">
-          Les agents y consigneront leurs résultats au fil des séances. Vous pouvez aussi y déposer vos propres acquis et hypothèses.
+          Chargez le « socle de connaissances » (faits établis, impasses connues, bibliographie), puis laissez les agents y consigner leurs résultats.
         </Empty>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -106,6 +117,7 @@ export default function MemoryPage() {
               <div className="mt-2 line-clamp-6 text-sm">
                 <Markdown>{m.content}</Markdown>
               </div>
+              {m.evidence && <div className="mt-2 truncate text-xs text-fg-400" title={m.evidence}>Preuve : {m.evidence}</div>}
               <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-fg-400">
                 <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-700" title={`Confiance ${Math.round(m.confidence * 100)} %`}>
                   <div className="h-full rounded-full bg-primary-500" style={{ width: `${m.confidence * 100}%` }} />

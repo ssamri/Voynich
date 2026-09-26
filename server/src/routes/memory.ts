@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
+import { seedKnowledge } from '../science/seed.js';
 import { MEMORY_LABELS, MEMORY_TYPES, createMemory, searchMemories, updateMemory, type MemoryRow } from '../memory.js';
 
 export const memoryRouter = Router();
@@ -36,6 +37,8 @@ memoryRouter.post('/', (req, res) => {
   if (body.status && body.status !== 'active') res.json(updateMemory(m.id, { status: body.status }));
   else res.json(m);
 });
+
+memoryRouter.post('/seed', (_req, res) => res.json(seedKnowledge()));
 
 memoryRouter.put('/:id', (req, res) => {
   res.json(updateMemory(Number(req.params.id), input.partial().parse(req.body)));

@@ -7,6 +7,7 @@ import type { Agent, DocumentSummary, ResearchSession } from '../lib/types';
 import { Empty, ErrorBox, Field, Modal, PageHeader, Spinner } from '../components/ui';
 
 export const OBJECTIVE_IDEAS = [
+  'Comparer l’empreinte statistique de Voynich (langues A et B, deux alphabets) à celles des langues médiévales, des chiffres et des textes générés, et en déduire quelles familles d’hypothèses sont éliminées.',
   'Établir un inventaire rigoureux des propriétés statistiques du texte (entropies, positions des glyphes, langues A/B) et en déduire les familles de systèmes d’écriture compatibles ou exclues.',
   'Tester l’hypothèse d’un chiffre de substitution simple sur une langue romane ou le latin : proposer des tables, les appliquer à f1r et évaluer objectivement le résultat.',
   'Analyser les étiquettes de la section zodiacale (f70v–f73v) et chercher des correspondances avec les noms de mois médiévaux.',
@@ -20,13 +21,14 @@ export default function Sessions() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', objective: '', mode: 'roundtable' as 'roundtable' | 'orchestrated', agentIds: [] as number[], leadAgentId: null as number | null, roundsPerRun: 2, contextDocIds: [] as number[] });
+  const [form, setForm] = useState({ title: '', objective: '', mode: 'roundtable' as 'roundtable' | 'orchestrated' | 'cycle', agentIds: [] as number[], leadAgentId: null as number | null, roundsPerRun: 2, contextDocIds: [] as number[], tokenBudget: null as number | null });
 
   const activeAgents = agents.data?.filter((a) => a.enabled) ?? [];
 
   function openNew() {
     setError(null);
-    setForm({ title: '', objective: '', mode: 'roundtable', agentIds: activeAgents.map((a) => a.id), leadAgentId: activeAgents[0]?.id ?? null, roundsPerRun: 2, contextDocIds: [] });
+    const judge = activeAgents.find((a) => /juge|judge/i.test(`${a.name} ${a.roleTitle}`));
+    setForm({ title: '', objective: '', mode: judge ? 'cycle' : 'roundtable', agentIds: activeAgents.map((a) => a.id), leadAgentId: judge?.id ?? activeAgents[0]?.id ?? null, roundsPerRun: 2, contextDocIds: [], tokenBudget: 500000 });
     setOpen(true);
   }
 
@@ -80,7 +82,7 @@ export default function Sessions() {
                 </div>
                 <p className="mt-1 line-clamp-1 text-sm text-fg-400">{s.objective}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                  <span className="chip">{s.mode === 'orchestrated' ? 'Dirigée' : 'Table ronde'}</span>
+                  <span className="chip">{s.mode === 'orchestrated' ? 'Dirigée' : s.mode === 'cycle' ? 'Cycles' : 'Table ronde'}</span>
                   <span className="chip">{s.messageCount ?? 0} messages</span>
                   <span className="chip">{formatTokens(s.tokens ?? 0)} tokens</span>
                   {s.updatedAt && <span className="chip">{formatDate(s.updatedAt)}</span>}
@@ -112,21 +114,31 @@ export default function Sessions() {
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Mode">
               <select className="input" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value as typeof form.mode })}>
+                <option value="cycle">Cycles de recherche (hypothèse → test → verdict)</option>
                 <option value="roundtable">Table ronde (chacun son tour)</option>
                 <option value="orchestrated">Dirigée (un agent délègue)</option>
               </select>
             </Field>
-            {form.mode === 'orchestrated' && (
-              <Field label="Directeur de recherche">
+            {form.mode !== 'roundtable' && (
+              <Field label={form.mode === 'cycle' ? 'Juge (plan de test et verdict)' : 'Directeur de recherche'}>
                 <select className="input" value={form.leadAgentId ?? ''} onChange={(e) => setForm({ ...form, leadAgentId: Number(e.target.value) })}>
                   {activeAgents.filter((a) => form.agentIds.includes(a.id)).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </Field>
             )}
-            <Field label="Tours par lancement">
+            <Field label={form.mode === 'cycle' ? 'Cycles par lancement' : 'Tours par lancement'}>
               <input className="input" type="number" min={1} max={20} value={form.roundsPerRun} onChange={(e) => setForm({ ...form, roundsPerRun: Number(e.target.value) })} />
             </Field>
           </div>
+          {form.mode === 'cycle' && (
+            <p className="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-2 text-xs text-fg-200">
+              Chaque cycle : 1) un chercheur propose une hypothèse, 2) le juge fixe le plan de test et ses critères, 3) un chercheur exécute les tests,
+              4) un autre relit et rejoue les expériences, 5) le juge rend le verdict et met la mémoire à jour.
+            </p>
+          )}
+          <Field label="Budget maximal par lancement (tokens)" hint="L’exécution s’arrête proprement une fois ce plafond atteint. Vide = sans plafond.">
+            <input className="input" type="number" min={10000} step={10000} value={form.tokenBudget ?? ''} onChange={(e) => setForm({ ...form, tokenBudget: e.target.value ? Number(e.target.value) : null })} />
+          </Field>
           <div>
             <span className="label">Agents participants (ordre de parole)</span>
             <div className="flex flex-wrap gap-2">

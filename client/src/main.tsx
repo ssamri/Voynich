@@ -16,6 +16,8 @@ const Library = lazy(() => import('./pages/Library'));
 const MemoryPage = lazy(() => import('./pages/Memory'));
 const Corpus = lazy(() => import('./pages/Corpus'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
+const Lab = lazy(() => import('./pages/Lab'));
+const Manuscript = lazy(() => import('./pages/Manuscript'));
 
 function Gate() {
   const { loading, user } = useAuth();
@@ -44,6 +46,8 @@ function Gate() {
           <Route path="library" element={<Library />} />
           <Route path="memory" element={<MemoryPage />} />
           <Route path="corpus" element={<Corpus />} />
+          <Route path="lab" element={<Lab />} />
+          <Route path="manuscript" element={<Manuscript />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

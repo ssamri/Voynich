@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { audit } from '../security/auth.js';
 import { subscribe } from '../orchestrator/bus.js';
+import { getCampaign, runCampaignNow, upsertCampaign } from '../orchestrator/campaigns.js';
 import { addUserMessage, getSession, isRunning, startRun, stopSession, type SessionRow } from '../orchestrator/runner.js';
 
 export const sessionsRouter = Router();
@@ -18,16 +19,18 @@ const view = (s: SessionRow) => ({
   contextDocIds: JSON.parse(s.context_doc_ids) as number[],
   status: isRunning(s.id) ? 'running' : s.status === 'running' ? 'idle' : s.status,
   summary: s.summary,
+  tokenBudget: s.token_budget,
 });
 
 const input = z.object({
   title: z.string().trim().min(1).max(200),
   objective: z.string().trim().min(1).max(10000),
-  mode: z.enum(['roundtable', 'orchestrated']).default('roundtable'),
+  mode: z.enum(['roundtable', 'orchestrated', 'cycle']).default('roundtable'),
   agentIds: z.array(z.number().int()).min(1),
   leadAgentId: z.number().int().nullable().optional(),
   roundsPerRun: z.number().int().min(1).max(20).default(2),
   contextDocIds: z.array(z.number().int()).max(30).default([]),
+  tokenBudget: z.number().int().min(10000).max(50_000_000).nullable().optional(),
 });
 
 sessionsRouter.get('/', (_req, res) => {
@@ -45,9 +48,9 @@ sessionsRouter.post('/', (req, res) => {
   const b = input.parse(req.body);
   const info = db
     .prepare(
-      `INSERT INTO research_sessions(title, objective, mode, agent_ids, lead_agent_id, rounds_per_run, context_doc_ids) VALUES (?,?,?,?,?,?,?)`,
+      `INSERT INTO research_sessions(title, objective, mode, agent_ids, lead_agent_id, rounds_per_run, context_doc_ids, token_budget) VALUES (?,?,?,?,?,?,?,?)`,
     )
-    .run(b.title, b.objective, b.mode, JSON.stringify(b.agentIds), b.leadAgentId ?? null, b.roundsPerRun, JSON.stringify(b.contextDocIds));
+    .run(b.title, b.objective, b.mode, JSON.stringify(b.agentIds), b.leadAgentId ?? null, b.roundsPerRun, JSON.stringify(b.contextDocIds), b.tokenBudget ?? null);
   audit(req, 'session.create', { id: info.lastInsertRowid });
   res.json(view(getSession(Number(info.lastInsertRowid))!));
 });
@@ -61,7 +64,7 @@ sessionsRouter.put('/:id', (req, res) => {
   }
   const b = input.partial().parse(req.body);
   db.prepare(
-    `UPDATE research_sessions SET title=?, objective=?, mode=?, agent_ids=?, lead_agent_id=?, rounds_per_run=?, context_doc_ids=?, updated_at=datetime('now') WHERE id=?`,
+    `UPDATE research_sessions SET title=?, objective=?, mode=?, agent_ids=?, lead_agent_id=?, rounds_per_run=?, context_doc_ids=?, token_budget=?, updated_at=datetime('now') WHERE id=?`,
   ).run(
     b.title ?? cur.title,
     b.objective ?? cur.objective,
@@ -70,6 +73,7 @@ sessionsRouter.put('/:id', (req, res) => {
     b.leadAgentId === undefined ? cur.lead_agent_id : b.leadAgentId,
     b.roundsPerRun ?? cur.rounds_per_run,
     b.contextDocIds ? JSON.stringify(b.contextDocIds) : cur.context_doc_ids,
+    b.tokenBudget === undefined ? cur.token_budget : b.tokenBudget,
     id,
   );
   res.json(view(getSession(id)!));
@@ -109,10 +113,15 @@ sessionsRouter.post('/:id/messages', (req, res) => {
 
 sessionsRouter.post('/:id/run', (req, res) => {
   const b = z
-    .object({ rounds: z.number().int().min(1).max(20).optional(), agentIds: z.array(z.number().int()).optional(), synthesizeWith: z.number().int().optional() })
+    .object({
+      rounds: z.number().int().min(1).max(20).optional(),
+      agentIds: z.array(z.number().int()).optional(),
+      synthesizeWith: z.number().int().optional(),
+      tokenBudget: z.number().int().min(10000).optional(),
+    })
     .parse(req.body ?? {});
   const id = Number(req.params.id);
-  startRun(id, { rounds: b.rounds, agentIds: b.agentIds, synthesize: b.synthesizeWith ? { agentId: b.synthesizeWith } : undefined });
+  startRun(id, { rounds: b.rounds, agentIds: b.agentIds, tokenBudget: b.tokenBudget, synthesize: b.synthesizeWith ? { agentId: b.synthesizeWith } : undefined });
   res.json({ ok: true });
 });
 
@@ -157,4 +166,23 @@ sessionsRouter.get('/:id/export', (req, res) => {
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="seance-${s.id}.md"`);
   res.send(`# ${s.title}\n\n**Objectif :** ${s.objective}\n\n${s.summary ? `## Synthèse\n\n${s.summary}\n\n` : ''}## Transcription\n\n${body}\n`);
+});
+
+/** Campagne nocturne : exécution planifiée avec budget et rapport du matin. */
+sessionsRouter.get('/:id/campaign', (req, res) => res.json(getCampaign(Number(req.params.id)) ?? null));
+sessionsRouter.put('/:id/campaign', (req, res) => {
+  const b = z
+    .object({
+      enabled: z.boolean(),
+      hour: z.number().int().min(0).max(23),
+      rounds: z.number().int().min(1).max(20),
+      tokenBudget: z.number().int().min(10000).max(50_000_000),
+      reportAgentId: z.number().int().nullable().optional(),
+    })
+    .parse(req.body);
+  res.json(upsertCampaign(Number(req.params.id), b));
+});
+sessionsRouter.post('/:id/campaign/run', (req, res) => {
+  runCampaignNow(Number(req.params.id));
+  res.json({ ok: true });
 });

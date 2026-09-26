@@ -120,6 +120,14 @@ Tous les agents (Claude, ChatGPT et les IA gratuites) ont accès **à la bibliot
 | `corpus_get_folio` / `corpus_search` / `corpus_stats` | Lire un folio, chercher un mot ou motif, statistiques |
 | `apply_substitution` | Tester une table de déchiffrement sur un folio |
 | `ask_agent` | Consulter un autre agent |
+| `register_test` / `evaluate_decipherment` | **Juge** : pré-enregistrer des critères, puis noter une hypothèse (couverture, plausibilité, dictionnaire, comparaison au hasard) |
+| `anneal_substitution` | Recherche automatique de clé (recuit simulé) **avec textes de contrôle** |
+| `compare_fingerprints` | Empreinte statistique comparée aux langues réelles, chiffres et textes générés |
+| `algo_*` | Sukhotin, HMM, structure des mots, mots-clés, mots proches, effets de ligne |
+| `run_code` | Calcul libre en JavaScript dans un bac à sable isolé |
+| `list_cribs` / `add_crib` / `test_cribs` / `crib_constraints` | Indices (mots probables) |
+| `get_experiment` / `replay_experiment` | Journal d'expériences, réplication |
+| `view_folio_image` / `add_annotation` | Examiner les images du manuscrit, annoter |
 | `ask_human` | Vous poser une question et attendre la réponse |
 | `web_search` | **Recherche internet** — native chez Claude et ChatGPT ; pour les IA gratuites, outil de l'application (Wikipédia sans clé, ou Tavily / Brave avec clé gratuite) |
 | `web_fetch` / `fetch_url` | Lecture complète d'une page web ou d'un PDF en ligne (protégée contre l'accès aux adresses internes) |
@@ -244,6 +252,22 @@ Tous les agents (Claude, ChatGPT et les IA gratuites) ont accès **à la bibliot
 - [ ] Tableau de bord, consommation de tokens
 - [ ] Synthèse et export des séances
 - [ ] Tests, déploiement (front + worker), documentation d'installation
+
+### Phase 7 — Moteur scientifique (réalisé dans le prototype)
+- [x] **Juge automatique** : couverture, cohérence (collisions), entropie croisée sous un modèle de langue, taux de mots du dictionnaire,
+      comparaison à des tables aléatoires, **critères pré-enregistrés** et figés ; confirmation d'une hypothèse impossible sans verdict PASS
+- [x] **Laboratoire de calcul** : recuit simulé avec contrôles (texte mélangé, textes générés, autres langues), Sukhotin, HMM (Baum-Welch),
+      grammaire des mots, mots-clés (Montemurro & Zanette), mots aux contextes proches (PPMI), effets de ligne,
+      **bac à sable JavaScript isolé** (QuickJS/WebAssembly) pour tous les agents
+- [x] **Corpus de comparaison** : import de langues (URL, fichier, texte), générateurs de contrôle (Rugg, Timm & Schinner, mélanges,
+      substitution, homophonique, chiffre verbeux), **empreintes statistiques** comparées
+- [x] **Images IIIF** de la Beinecke (import du manifeste, cache, zoom), **annotations** reliées aux lignes, **vision** pour les agents
+- [x] **Indices (cribs)** : gestion, contraintes déduites, test d'une clé, prise en compte par la recherche de clé
+- [x] **Socle de connaissances** : faits établis, impasses connues, hypothèses ouvertes et bibliographie, avec sources
+- [x] **Collaboration** : mode « cycles de recherche » (hypothèse → plan → exécution → relecture → verdict), rôle **Juge**,
+      preuves obligatoires (#E, URL, doc, [Auteur, année]), **journal d'expériences reproductible**, **budget de tokens**,
+      **campagnes nocturnes** avec rapport du matin
+- [x] **Visualisations** : carte des pages (MDS TF-IDF), répartition d'un mot, glyphes × folios (palette validée daltonisme)
 
 ---
 

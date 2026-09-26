@@ -112,7 +112,7 @@ function isPrivateIp(ip: string): boolean {
 }
 
 /** Refuse les adresses internes (protection SSRF) : l'URL vient d'un modèle, donc non fiable. */
-async function assertPublicUrl(u: URL) {
+export async function assertPublicUrl(u: URL) {
   if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('Seules les URL http(s) sont autorisées');
   if (u.username || u.password) throw new Error('URL avec identifiants refusée');
   const host = u.hostname.replace(/^\[|\]$/g, '');

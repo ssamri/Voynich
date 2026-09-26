@@ -16,6 +16,9 @@ import { memoryRouter } from './routes/memory.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { corpusRouter } from './routes/corpus.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { scienceRouter } from './routes/science.js';
+import { manuscriptRouter } from './routes/manuscript.js';
+import { startCampaignScheduler } from './orchestrator/campaigns.js';
 
 const app = express();
 if (config.trustProxy) app.set('trust proxy', 1);
@@ -53,6 +56,8 @@ api.use('/library', libraryRouter);
 api.use('/memory', memoryRouter);
 api.use('/sessions', sessionsRouter);
 api.use('/corpus', corpusRouter);
+api.use('/science', scienceRouter);
+api.use('/manuscript', manuscriptRouter);
 api.use((_req, res) => res.status(404).json({ error: 'Route inconnue' }));
 app.use('/api', api);
 
@@ -78,6 +83,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 db.prepare(`UPDATE research_sessions SET status = 'idle' WHERE status = 'running'`).run();
 purgeExpiredSessions();
 setInterval(purgeExpiredSessions, 3600_000).unref();
+startCampaignScheduler();
 
 app.listen(config.port, config.host, () => {
   console.log(`[voynich] API prête sur http://${config.host}:${config.port} (${config.env})`);

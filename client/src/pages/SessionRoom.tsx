@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { ArrowLeft, Brain, Globe, ChevronRight, Download, Play, Send, Square, Wrench, FileText, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Brain, Globe, Moon, ChevronRight, Download, Play, Send, Square, Wrench, FileText, AlertTriangle } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatDate, formatTokens, useFetch } from '../lib/hooks';
 import type { Agent, Memory, Message, ResearchSession } from '../lib/types';
@@ -199,7 +199,8 @@ export default function SessionRoom() {
             <div className="flex items-center gap-2 text-xs text-fg-400">
               <span className={clsx('h-2 w-2 rounded-full', running ? 'animate-pulse bg-success-400' : 'bg-surface-500')} />
               {running ? 'Les agents travaillent…' : session.status === 'stopped' ? 'Interrompue' : 'En attente'}
-              <span>· {session.mode === 'orchestrated' ? 'dirigée' : 'table ronde'}</span>
+              <span>· {session.mode === 'orchestrated' ? 'dirigée' : session.mode === 'cycle' ? 'cycles de recherche' : 'table ronde'}</span>
+              {session.tokenBudget ? <span>· budget {formatTokens(session.tokenBudget)} tokens</span> : null}
             </div>
           </div>
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
@@ -239,7 +240,13 @@ export default function SessionRoom() {
               <p className="py-10 text-center text-sm text-fg-400">Lancez la séance ou adressez une première consigne à l’équipe.</p>
             )}
             {messages.map((m) =>
-              m.kind === 'user' ? (
+              m.kind === 'system' ? (
+                <div key={m.id} className="flex items-center gap-3 py-1 text-xs font-medium text-primary-400">
+                  <span className="h-px flex-1 bg-primary-500/30" />
+                  {m.content}
+                  <span className="h-px flex-1 bg-primary-500/30" />
+                </div>
+              ) : m.kind === 'user' ? (
                 <div key={m.id} className="flex justify-end">
                   <div className="max-w-[85%] rounded-2xl rounded-br-sm border border-primary-500/30 bg-primary-500/10 px-4 py-3">
                     <div className="mb-1 text-xs font-medium text-primary-300">Chercheur principal · {formatDate(m.created_at)}</div>
@@ -327,6 +334,7 @@ export default function SessionRoom() {
             <div className="rounded-lg bg-surface-850 p-2"><div className="font-mono text-fg-50">{formatTokens(totals.cache)}</div><div className="text-fg-400">cache</div></div>
           </div>
         </section>
+        <CampaignPanel sessionId={sessionId} agents={participants} />
         {memories.length > 0 && (
           <section>
             <div className="label flex items-center gap-1"><Brain className="h-3.5 w-3.5" /> Mémoire (cette séance)</div>
@@ -399,5 +407,65 @@ function AgentMessage({ m, agent, tools, parent }: { m: LiveMessage; agent?: Age
         </div>
       </div>
     </div>
+  );
+}
+
+interface Campaign {
+  enabled: number;
+  hour: number;
+  rounds: number;
+  token_budget: number;
+  report_agent_id: number | null;
+  last_run_at: string | null;
+  last_status: string | null;
+}
+
+/** Campagne nocturne : relance automatique quotidienne avec budget et rapport du matin. */
+function CampaignPanel({ sessionId, agents }: { sessionId: number; agents: Agent[] }) {
+  const current = useFetch(() => api.get<Campaign | null>(`/sessions/${sessionId}/campaign`), [sessionId]);
+  const [form, setForm] = useState<{ enabled: boolean; hour: number; rounds: number; tokenBudget: number; reportAgentId: number | null } | null>(null);
+  useEffect(() => {
+    const c = current.data;
+    setForm({ enabled: Boolean(c?.enabled), hour: c?.hour ?? 2, rounds: c?.rounds ?? 3, tokenBudget: c?.token_budget ?? 300000, reportAgentId: c?.report_agent_id ?? null });
+  }, [current.data]);
+  if (!form) return null;
+  async function save(runNow = false) {
+    try {
+      await api.put(`/sessions/${sessionId}/campaign`, form);
+      if (runNow) await api.post(`/sessions/${sessionId}/campaign/run`);
+      toast.ok(runNow ? 'Campagne lancée.' : 'Campagne enregistrée.');
+      current.reload();
+    } catch (e) {
+      toast.err((e as Error).message);
+    }
+  }
+  return (
+    <section>
+      <div className="label flex items-center gap-1"><Moon className="h-3.5 w-3.5" /> Campagne nocturne</div>
+      <div className="space-y-2 rounded-lg border border-surface-700 p-3 text-xs">
+        <label className="flex items-center gap-2 text-fg-200">
+          <input type="checkbox" className="accent-primary-500" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
+          Relancer chaque jour à
+          <input type="number" min={0} max={23} className="input w-14 py-1" value={form.hour} onChange={(e) => setForm({ ...form, hour: Number(e.target.value) })} /> h
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-fg-400">Tours / cycles<input type="number" min={1} max={20} className="input mt-1 py-1" value={form.rounds} onChange={(e) => setForm({ ...form, rounds: Number(e.target.value) })} /></label>
+          <label className="text-fg-400">Budget (tokens)<input type="number" min={10000} step={10000} className="input mt-1 py-1" value={form.tokenBudget} onChange={(e) => setForm({ ...form, tokenBudget: Number(e.target.value) })} /></label>
+        </div>
+        <label className="block text-fg-400">
+          Rapport du matin rédigé par
+          <select className="input mt-1 py-1" value={form.reportAgentId ?? ''} onChange={(e) => setForm({ ...form, reportAgentId: e.target.value ? Number(e.target.value) : null })}>
+            <option value="">Directeur / premier agent</option>
+            {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </label>
+        <div className="flex gap-2">
+          <button className="btn-ghost flex-1 py-1 text-xs" onClick={() => save(false)}>Enregistrer</button>
+          <button className="btn-ghost flex-1 py-1 text-xs" onClick={() => save(true)}>Lancer maintenant</button>
+        </div>
+        {current.data?.last_run_at && <p className="text-fg-400">Dernière exécution : {formatDate(current.data.last_run_at)} ({current.data.last_status})</p>}
+        <p className="text-fg-400">Le rapport est déposé dans la Bibliothèque. Heure du serveur.</p>
+      </div>
+    </section>
   );
 }

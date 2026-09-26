@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { db } from '../db.js';
 
 export interface CorpusFilter {
@@ -19,10 +20,12 @@ interface LineRow {
 }
 
 let lineCache: LineRow[] | null = null;
+let versionCache: string | null = null;
 const analysisCache = new Map<string, unknown>();
 
 export function invalidateCorpusCache() {
   lineCache = null;
+  versionCache = null;
   analysisCache.clear();
 }
 
@@ -256,4 +259,18 @@ export function folioText(folio: string) {
 
 export function corpusLoaded() {
   return allLines().length > 0;
+}
+
+/** Empreinte courte du corpus chargé : enregistrée avec chaque expérience pour la reproductibilité. */
+export function corpusVersion() {
+  if (versionCache === null) {
+    const h = crypto.createHash('sha256');
+    for (const l of allLines()) h.update(`${l.locus}\t${l.text}\n`);
+    versionCache = allLines().length ? h.digest('hex').slice(0, 12) : 'vide';
+  }
+  return versionCache;
+}
+
+export function allCorpusLines() {
+  return allLines();
 }

@@ -82,7 +82,7 @@ export default function Agents() {
       toast.err('Ajoutez d’abord au moins une connexion IA (Claude, ChatGPT ou une IA gratuite).');
       return;
     }
-    const roles = ['cryptanalyst', 'linguist', 'skeptic', 'historian'].slice(0, Math.max(3, Math.min(4, pool.length)));
+    const roles = ['cryptanalyst', 'linguist', 'historian', 'judge'];
     for (const [i, key] of roles.entries()) {
       const p = pool[i % pool.length];
       const preset = presets.find((x) => x.key === key)!;

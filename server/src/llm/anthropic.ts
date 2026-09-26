@@ -164,9 +164,22 @@ export class AnthropicProvider implements LLMProvider {
       const results: BetaToolResultBlockParam[] = await Promise.all(
         toolUses.map(async (tu) => {
           events.onToolCall({ id: tu.id, name: tu.name, input: tu.input });
-          const { output, isError } = await executeTool(req.tools, tu.name, tu.input);
-          events.onToolResult({ id: tu.id, name: tu.name, output, isError });
-          return { type: 'tool_result', tool_use_id: tu.id, content: output, is_error: isError };
+          const { output, images, isError } = await executeTool(req.tools, tu.name, tu.input);
+          events.onToolResult({ id: tu.id, name: tu.name, output: images.length ? `${output}\n[${images.length} image(s) transmise(s) au modèle]` : output, isError });
+          return {
+            type: 'tool_result',
+            tool_use_id: tu.id,
+            is_error: isError,
+            content: images.length
+              ? [
+                  { type: 'text', text: output },
+                  ...images.map((im) => ({
+                    type: 'image' as const,
+                    source: { type: 'base64' as const, media_type: im.mediaType as 'image/jpeg', data: im.data },
+                  })),
+                ]
+              : output,
+          };
         }),
       );
       messages.push({ role: 'user', content: results });
