@@ -50,7 +50,7 @@ export default function Agents() {
       effort: 'high',
       color: preset?.color ?? '#5b8def',
       tools: Object.keys(meta.data?.toolGroups ?? {}),
-      webSearch: false,
+      webSearch: p?.kind === 'anthropic' || p?.kind === 'openai',
       enabled: true,
     });
   }
@@ -95,6 +95,7 @@ export default function Agents() {
         roleTitle: preset.title,
         systemPrompt: preset.prompt,
         color: p?.kind === 'openai' ? '#10a37f' : preset.color,
+        webSearch: p?.kind === 'anthropic' || p?.kind === 'openai',
       });
     }
     toast.ok('Équipe créée : cryptanalyste, linguiste, critique.');
@@ -111,7 +112,7 @@ export default function Agents() {
     <div className="mx-auto max-w-6xl p-4 sm:p-8">
       <PageHeader
         title="Agents"
-        subtitle="Chaque agent associe un modèle (Claude, GPT…) à un rôle, une personnalité de recherche et des outils : bibliothèque, mémoire partagée, corpus EVA, tests de substitution et consultation des autres agents."
+        subtitle="Chaque agent associe un modèle (Claude, GPT…) à un rôle et à des outils : bibliothèque interne, mémoire partagée, recherche internet, corpus EVA, tests de substitution et consultation des autres agents."
         actions={
           <>
             <button className="btn-ghost" onClick={quickTeam}>
@@ -156,7 +157,7 @@ export default function Agents() {
                   {a.effort && <span className="chip">effort {a.effort}</span>}
                   {a.webSearch && (
                     <span className="chip">
-                      <Globe className="h-3 w-3" /> web
+                      <Globe className="h-3 w-3" /> internet
                     </span>
                   )}
                   <span className="chip">{a.tools.length} outils</span>
@@ -210,7 +211,7 @@ export default function Agents() {
                 value={draft.providerId ?? ''}
                 onChange={(e) => {
                   const p = providers.data?.find((x) => x.id === Number(e.target.value));
-                  setDraft({ ...draft, providerId: p?.id ?? null, model: p?.defaultModel ?? draft.model, webSearch: p?.kind === 'anthropic' ? draft.webSearch : false });
+                  setDraft({ ...draft, providerId: p?.id ?? null, model: p?.defaultModel ?? draft.model, webSearch: p?.kind === 'anthropic' || p?.kind === 'openai' });
                 }}
               >
                 <option value="">—</option>
@@ -252,8 +253,8 @@ export default function Agents() {
             </Field>
             <div className="flex flex-col justify-end gap-3 pb-1">
               <Toggle checked={draft.enabled} onChange={(v) => setDraft({ ...draft, enabled: v })} label="Agent actif" />
-              {provider?.kind === 'anthropic' && (
-                <Toggle checked={draft.webSearch} onChange={(v) => setDraft({ ...draft, webSearch: v })} label="Recherche web (Claude)" />
+              {(provider?.kind === 'anthropic' || provider?.kind === 'openai') && (
+                <Toggle checked={draft.webSearch} onChange={(v) => setDraft({ ...draft, webSearch: v })} label="Recherche internet" />
               )}
             </div>
             <div className="md:col-span-2">

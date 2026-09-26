@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { ArrowLeft, Brain, ChevronRight, Download, Play, Send, Square, Wrench, FileText, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Brain, Globe, ChevronRight, Download, Play, Send, Square, Wrench, FileText, AlertTriangle } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatDate, formatTokens, useFetch } from '../lib/hooks';
 import type { Agent, Memory, Message, ResearchSession } from '../lib/types';
@@ -377,7 +377,7 @@ function AgentMessage({ m, agent, tools, parent }: { m: LiveMessage; agent?: Age
                 <details key={t.key} className="group rounded-md border border-surface-700 bg-surface-850/60 text-xs">
                   <summary className="flex cursor-pointer select-none items-center gap-2 px-2 py-1.5 text-fg-300">
                     <ChevronRight className="h-3 w-3 transition group-open:rotate-90" />
-                    <Wrench className="h-3 w-3 text-primary-500" />
+                    {t.name.startsWith('web_') ? <Globe className="h-3 w-3 text-primary-500" /> : <Wrench className="h-3 w-3 text-primary-500" />}
                     <span className="font-mono">{t.name}</span>
                     <span className="truncate text-fg-400">{t.input ? JSON.stringify(t.input).slice(0, 90) : ''}</span>
                     {t.output === undefined ? <Spinner className="ml-auto h-3 w-3" /> : t.isError ? <AlertTriangle className="ml-auto h-3 w-3 text-danger-400" /> : null}

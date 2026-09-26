@@ -96,6 +96,9 @@ Functions resteront possibles pour de petites tâches (ex. extraction de texte d
 
 ### 3.4 Outils des agents
 
+Les deux agents (Claude et ChatGPT) ont accès **à la bibliothèque interne, à la mémoire partagée et à la recherche internet**. Consigne donnée aux agents : consulter d'abord la mémoire et la bibliothèque, puis compléter sur internet, citer leurs sources et consigner les acquis dans la mémoire.
+
+
 | Outil | Usage |
 |---|---|
 | `search_library` / `read_document` | Chercher et lire dans la bibliothèque |
@@ -104,7 +107,8 @@ Functions resteront possibles pour de petites tâches (ex. extraction de texte d
 | `apply_substitution` | Tester une table de déchiffrement sur un folio |
 | `ask_agent` | Consulter un autre agent |
 | `ask_human` | Vous poser une question et attendre la réponse |
-| `web_search` | Recherche web (selon le fournisseur) |
+| `web_search` | **Recherche internet** — native chez Claude et chez ChatGPT, sources citées en fin de réponse |
+| `web_fetch` | Lecture complète d'une page web (Claude) |
 
 ### 3.5 Mémoire partagée
 
@@ -201,7 +205,8 @@ Functions resteront possibles pour de petites tâches (ex. extraction de texte d
 ### Phase 2 — Fournisseurs et agents
 - [ ] Gestion des fournisseurs (clés dans Vault, test de connexion, liste des modèles)
 - [ ] Gestion des agents et rôles prêts à l'emploi
-- [ ] Worker Node : adaptateurs Claude et OpenAI en streaming, avec appels d'outils
+- [x] Adaptateurs Claude (Messages API) et OpenAI (Responses API) en streaming, avec appels d'outils et recherche internet native — déjà dans le prototype
+- [ ] Worker Node branché sur Supabase
 
 ### Phase 3 — Salle de travail en équipe (priorité)
 - [ ] Fil de discussion temps réel (Realtime), messages humains et agents

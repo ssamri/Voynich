@@ -95,10 +95,29 @@ function systemPrompt(agent: AgentRow, session: SessionRow, team: AgentRow[]) {
     `## Équipe\n${
       others.map((a) => `- ${a.name} : ${a.role_title || 'agent'}`).join('\n') || '- (aucun autre agent)'
     }\n- Chercheur principal : l'humain qui dirige le projet. Ses consignes priment.`,
+    capabilities(agent),
     `## Séance « ${session.title} »\nObjectif : ${session.objective}\nMode : ${
       session.mode === 'orchestrated' ? 'dirigé par un directeur de recherche qui délègue' : 'table ronde, chacun à son tour'
     }.`,
-  ].join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/** Décrit à l'agent les sources auxquelles il a accès et comment les combiner. */
+function capabilities(agent: AgentRow) {
+  const groups = JSON.parse(agent.tools) as string[];
+  const lines: string[] = [];
+  if (groups.includes('library')) lines.push("- **Bibliothèque interne** (search_library, read_document) : articles, livres, notes et fichiers partagés par l'équipe.");
+  if (groups.includes('memory')) lines.push("- **Mémoire partagée** (search_memory, save_memory, update_memory) : acquis, hypothèses et impasses de l'équipe.");
+  if (groups.includes('corpus')) lines.push('- **Corpus EVA** (corpus_get_folio, corpus_search, corpus_stats) : transcription du manuscrit et statistiques.');
+  if (groups.includes('substitution')) lines.push('- **Tests de substitution** (apply_substitution).');
+  if (groups.includes('collaboration')) lines.push('- **Consultation des autres agents** (ask_agent).');
+  if (agent.web_search) lines.push('- **Recherche internet** (web_search) : publications, bases de données, travaux récents sur le manuscrit.');
+  if (!lines.length) return '';
+  return `## Tes sources et outils\n${lines.join('\n')}\n\nMéthode : consulte d'abord la mémoire et la bibliothèque internes${
+    agent.web_search ? ", puis complète par une recherche internet ciblée quand une information manque ou doit être vérifiée. Privilégie les sources sérieuses (publications universitaires, voynich.nu, Beinecke Library) et cite toujours tes sources web (URL)" : ''
+  }. Consigne dans la mémoire partagée ce qui mérite d'être retenu, avec sa source.`;
 }
 
 /** Mémoire injectée dans le dernier message (volatile) pour préserver le cache du prompt système. */
