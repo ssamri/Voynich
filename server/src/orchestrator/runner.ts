@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { db } from '../db.js';
 import { buildProvider, getProviderRow } from '../llm/registry.js';
 import type { ContentPart, Effort, NeutralMessage } from '../llm/types.js';
-import { documentFile, getDocument } from '../library/library.js';
+import { createTextDocument, documentFile, getDocument } from '../library/library.js';
 import { formatMemory, pinnedMemories, searchMemories } from '../memory.js';
 import { publish } from './bus.js';
 import { VOYNICH_BRIEF } from './prompts.js';
@@ -28,13 +28,14 @@ export interface SessionRow {
   id: number;
   title: string;
   objective: string;
-  mode: 'roundtable' | 'orchestrated';
+  mode: 'roundtable' | 'orchestrated' | 'cycle';
   agent_ids: string;
   lead_agent_id: number | null;
   rounds_per_run: number;
   context_doc_ids: string;
   status: string;
   summary: string | null;
+  token_budget: number | null;
 }
 
 interface MessageRow {
@@ -95,10 +96,44 @@ function systemPrompt(agent: AgentRow, session: SessionRow, team: AgentRow[]) {
     `## Équipe\n${
       others.map((a) => `- ${a.name} : ${a.role_title || 'agent'}`).join('\n') || '- (aucun autre agent)'
     }\n- Chercheur principal : l'humain qui dirige le projet. Ses consignes priment.`,
+    capabilities(agent),
     `## Séance « ${session.title} »\nObjectif : ${session.objective}\nMode : ${
       session.mode === 'orchestrated' ? 'dirigé par un directeur de recherche qui délègue' : 'table ronde, chacun à son tour'
     }.`,
-  ].join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/** Décrit à l'agent les sources auxquelles il a accès et comment les combiner. */
+function capabilities(agent: AgentRow) {
+  const generic = usesGenericWeb(agent);
+  const groups = JSON.parse(agent.tools) as string[];
+  const lines: string[] = [];
+  if (groups.includes('library')) lines.push("- **Bibliothèque interne** (search_library, read_document) : articles, livres, notes et fichiers partagés par l'équipe.");
+  if (groups.includes('memory')) lines.push("- **Mémoire partagée** (search_memory, save_memory, update_memory) : acquis, hypothèses et impasses de l'équipe.");
+  if (groups.includes('corpus')) lines.push('- **Corpus EVA** (corpus_get_folio, corpus_search, corpus_stats) : transcription du manuscrit et statistiques.');
+  if (groups.includes('substitution')) lines.push('- **Tests de substitution** (apply_substitution).');
+  if (groups.includes('collaboration')) lines.push('- **Consultation des autres agents** (ask_agent).');
+  if (groups.includes('science'))
+    lines.push(
+      "- **Laboratoire** : juge automatique (register_test, evaluate_decipherment), recherche de clé avec contrôle (anneal_substitution), empreintes comparées aux langues réelles, chiffres et textes générés (compare_fingerprints, list_reference_corpora), algorithmes (algo_sukhotin, algo_hmm, algo_word_structure, algo_keywords, algo_similar_words, algo_line_effects), calcul libre en JavaScript (run_code), indices (list_cribs, add_crib, test_cribs, crib_constraints), journal (get_experiment, replay_experiment). Chaque résultat porte un numéro #E<n> à citer.",
+    );
+  if (groups.includes('images')) lines.push("- **Images du manuscrit** (view_folio_image, list_annotations, add_annotation) : examiner un folio ou une zone, relier une étiquette à une ligne de transcription.");
+  if (agent.web_search)
+    lines.push(
+      `- **Recherche internet** (web_search${generic ? ', fetch_url pour lire une page' : ''}) : publications, bases de données, travaux récents sur le manuscrit.`,
+    );
+  if (!lines.length) return '';
+  return `## Tes sources et outils\n${lines.join('\n')}\n\nMéthode : consulte d'abord la mémoire et la bibliothèque internes${
+    agent.web_search ? ", puis complète par une recherche internet ciblée quand une information manque ou doit être vérifiée. Privilégie les sources sérieuses (publications universitaires, voynich.nu, Beinecke Library) et cite toujours tes sources web (URL)" : ''
+  }. Consigne dans la mémoire partagée ce qui mérite d'être retenu, avec sa source.`;
+}
+
+/** Les modèles sans recherche web native (fournisseurs compatibles OpenAI) utilisent nos outils web génériques. */
+function usesGenericWeb(agent: AgentRow) {
+  if (!agent.web_search || !agent.provider_id) return false;
+  return getProviderRow(agent.provider_id)?.kind === 'openai_compatible';
 }
 
 /** Mémoire injectée dans le dernier message (volatile) pour préserver le cache du prompt système. */
@@ -142,7 +177,7 @@ function contextParts(session: SessionRow): ContentPart[] {
 
 function buildHistory(session: SessionRow, agent: AgentRow, finalInstruction: string): NeutralMessage[] {
   const rows = db
-    .prepare(`SELECT id, kind, agent_id, agent_name, content FROM messages WHERE session_id = ? AND kind IN ('user','agent') AND content != '' ORDER BY id`)
+    .prepare(`SELECT id, kind, agent_id, agent_name, content FROM messages WHERE session_id = ? AND kind IN ('user','agent','system') AND content != '' ORDER BY id`)
     .all(session.id) as MessageRow[];
 
   // On garde les messages les plus récents dans la limite du budget.
@@ -174,6 +209,7 @@ function buildHistory(session: SessionRow, agent: AgentRow, finalInstruction: st
 
   for (const r of kept) {
     if (r.kind === 'user') push('user', [{ type: 'text', text: `[Chercheur principal] : ${r.content}` }]);
+    else if (r.kind === 'system') push('user', [{ type: 'text', text: `[Système] ${r.content}` }]);
     else if (r.agent_id === agent.id) push('assistant', [{ type: 'text', text: r.content }]);
     else push('user', [{ type: 'text', text: `[${r.agent_name ?? 'Agent'}] : ${r.content}` }]);
   }
@@ -190,6 +226,13 @@ interface TurnOptions {
   team: AgentRow[];
   /** Si défini, l'agent répond à une consultation (pas de ask_agent pour éviter la récursion). */
   consultedBy?: { name: string; messageId: number };
+  /** Compteur de tokens partagé par toute l'exécution (plafond de budget). */
+  budget?: Budget;
+}
+
+interface Budget {
+  used: number;
+  limit: number | null;
 }
 
 async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions): Promise<string> {
@@ -206,6 +249,7 @@ async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions):
   const toolInputs = new Map<string, unknown>();
 
   const finish = (fields: { content: string; thinking?: string; error?: string | null; usage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number }; model?: string }) => {
+    if (opts.budget && fields.usage) opts.budget.used += fields.usage.inputTokens + fields.usage.outputTokens;
     db.prepare(
       `UPDATE messages SET content = ?, thinking = ?, error = ?, input_tokens = ?, output_tokens = ?, cache_read_tokens = ?, duration_ms = ?, model = COALESCE(?, model) WHERE id = ?`,
     ).run(
@@ -236,6 +280,7 @@ async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions):
       agentName: agent.name,
       groups,
       otherAgents: others.map((a) => a.name),
+      genericWeb: providerRow.kind === 'openai_compatible' && Boolean(agent.web_search),
       askAgent: opts.consultedBy
         ? undefined
         : async (name, question) => {
@@ -244,6 +289,7 @@ async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions):
             return runTurn(session, target, {
               team: opts.team,
               signal: opts.signal,
+              budget: opts.budget,
               consultedBy: { name: agent.name, messageId },
               instruction: `[${agent.name} te consulte] ${question}\n\nRéponds précisément et de manière autonome ; utilise tes outils si nécessaire.`,
             });
@@ -258,7 +304,7 @@ async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions):
       maxTokens: agent.max_tokens,
       temperature: agent.temperature,
       effort: agent.effort,
-      webSearch: Boolean(agent.web_search),
+      webSearch: Boolean(agent.web_search) && providerRow.kind !== 'openai_compatible',
       maxSteps: MAX_TOOL_STEPS,
       signal: opts.signal,
       events: {
@@ -298,7 +344,57 @@ export interface RunOptions {
   rounds?: number;
   agentIds?: number[];
   synthesize?: { agentId: number };
+  /** Plafond de tokens (entrée + sortie) pour cette exécution. */
+  tokenBudget?: number | null;
+  /** Rapport final (synthèse + document dans la bibliothèque), utilisé par les campagnes nocturnes. */
+  report?: { agentId?: number | null; title: string };
+  onFinish?: (status: string) => void;
 }
+
+export function addSystemMessage(sessionId: number, content: string) {
+  const info = db.prepare(`INSERT INTO messages(session_id, kind, content) VALUES (?, 'system', ?)`).run(sessionId, content);
+  publish(sessionId, { type: 'message', message: getMessage(Number(info.lastInsertRowid)) });
+}
+
+class BudgetExceeded extends Error {}
+
+const SYNTHESIS_INSTRUCTION = `[Système] Rédige la SYNTHÈSE de la séance : 1) acquis établis (avec niveau de confiance et preuves #E<n>), 2) hypothèses en cours et tests associés, 3) impasses, 4) prochaines étapes priorisées. Enregistre les éléments clés dans la mémoire partagée (save_memory / update_memory) avant de répondre.`;
+
+/** Rôles du cycle : le juge (rôle « juge » ou directeur désigné) et les autres chercheurs. */
+function cycleRoles(session: SessionRow, team: AgentRow[]) {
+  const judge =
+    team.find((a) => /juge|judge|arbitre/i.test(`${a.name} ${a.role_title}`)) ?? team.find((a) => a.id === session.lead_agent_id) ?? team[team.length - 1];
+  const others = team.filter((a) => a.id !== judge.id);
+  return { judge, researchers: others.length ? others : [judge] };
+}
+
+const CYCLE_PHASES = [
+  {
+    title: 'Hypothèse',
+    who: 'proposer',
+    text: `Propose UNE hypothèse précise, testable et nouvelle pour faire avancer l'objectif. Vérifie d'abord dans la mémoire qu'elle ne correspond pas à une impasse connue. Énonce ce qu'elle prédit et ce qui la réfuterait. Enregistre-la (save_memory, type hypothesis).`,
+  },
+  {
+    title: 'Plan de test',
+    who: 'judge',
+    text: `En tant que juge, fixe le plan de test AVANT toute exécution : analyses à lancer, corpus de comparaison, critères chiffrés de réussite et de réfutation. Pour un déchiffrement, pré-enregistre le test avec register_test et donne son numéro.`,
+  },
+  {
+    title: 'Exécution',
+    who: 'executor',
+    text: `Exécute le plan de test avec les outils du laboratoire (evaluate_decipherment avec le test_id, anneal_substitution, compare_fingerprints, algo_*, run_code…). Rapporte chaque résultat avec son numéro d'expérience (#E<n>). N'interprète pas au-delà des chiffres.`,
+  },
+  {
+    title: 'Relecture critique',
+    who: 'reviewer',
+    text: `Relis l'exécution de façon critique : rejoue au moins une expérience clé (replay_experiment), cherche les biais, les contrôles manquants et les explications alternatives (hasard, artefact d'optimisation, texte généré).`,
+  },
+  {
+    title: 'Verdict',
+    who: 'judge',
+    text: `En tant que juge, rends le verdict selon les critères fixés au plan : CONFIRMÉE, RÉFUTÉE ou NON CONCLUANTE. Mets à jour la mémoire (update_memory avec preuves #E<n>) ; enregistre une impasse (dead_end) si l'hypothèse est réfutée. Termine par la question la plus prometteuse pour le cycle suivant.`,
+  },
+] as const;
 
 export function startRun(sessionId: number, opts: RunOptions = {}) {
   const session = getSession(sessionId);
@@ -310,31 +406,46 @@ export function startRun(sessionId: number, opts: RunOptions = {}) {
   const controller = new AbortController();
   running.set(sessionId, controller);
   setStatus(sessionId, 'running');
+  const budget: Budget = { used: 0, limit: opts.tokenBudget ?? session.token_budget ?? null };
 
   (async () => {
     const signal = controller.signal;
+    let finalStatus = 'idle';
+    const turn = async (agent: AgentRow, instruction: string) => {
+      if (budget.limit && budget.used >= budget.limit) throw new BudgetExceeded();
+      return runTurn(session, agent, { team, signal, budget, instruction });
+    };
     try {
       if (opts.synthesize) {
         const agent = getAgent(opts.synthesize.agentId);
         if (!agent) throw new Error('Agent de synthèse introuvable');
-        const text = await runTurn(session, agent, {
-          team,
-          signal,
-          instruction: `[Système] Rédige la SYNTHÈSE de la séance : 1) acquis établis (avec niveau de confiance), 2) hypothèses en cours et tests associés, 3) impasses, 4) prochaines étapes priorisées. Enregistre les éléments clés dans la mémoire partagée (save_memory / update_memory) avant de répondre.`,
-        });
+        const text = await turn(agent, SYNTHESIS_INSTRUCTION);
         db.prepare(`UPDATE research_sessions SET summary = ? WHERE id = ?`).run(text, sessionId);
         return;
       }
 
       const rounds = Math.max(1, Math.min(opts.rounds ?? session.rounds_per_run, 20));
-      if (session.mode === 'orchestrated') {
+      if (session.mode === 'cycle') {
+        const { judge, researchers } = cycleRoles(session, team);
+        for (let c = 0; c < rounds && !signal.aborted; c++) {
+          const proposer = researchers[c % researchers.length];
+          const executor = researchers.length > 2 ? researchers[(c + 1) % researchers.length] : proposer;
+          const reviewer = researchers.find((a) => a.id !== proposer.id && a.id !== executor.id) ?? researchers.find((a) => a.id !== proposer.id) ?? judge;
+          const who = { proposer, judge, executor, reviewer };
+          for (const [i, phase] of CYCLE_PHASES.entries()) {
+            if (signal.aborted) break;
+            const agent = who[phase.who];
+            addSystemMessage(sessionId, `Cycle ${c + 1}/${rounds} · Phase ${i + 1}/5 — ${phase.title} (${agent.name})`);
+            await turn(agent, `[Système] Cycle de recherche ${c + 1}/${rounds}, phase ${i + 1} « ${phase.title} ». ${phase.text}`);
+          }
+        }
+      } else if (session.mode === 'orchestrated') {
         const lead = team.find((a) => a.id === session.lead_agent_id) ?? team[0];
         for (let r = 0; r < rounds && !signal.aborted; r++) {
-          const text = await runTurn(session, lead, {
-            team,
-            signal,
-            instruction: `[Système] Tour ${r + 1}/${rounds}. Tu diriges la séance : fixe l'étape suivante, délègue les questions précises aux spécialistes via ask_agent, confronte leurs réponses, fais tester les hypothèses sur le corpus et consigne les résultats dans la mémoire. Termine par une synthèse d'étape. Si l'objectif est atteint ou si tu as besoin d'une décision du chercheur principal, termine par la ligne « STATUT: TERMINÉ ».`,
-          });
+          const text = await turn(
+            lead,
+            `[Système] Tour ${r + 1}/${rounds}. Tu diriges la séance : fixe l'étape suivante, délègue les questions précises aux spécialistes via ask_agent, confronte leurs réponses, fais tester les hypothèses sur le corpus et consigne les résultats dans la mémoire. Termine par une synthèse d'étape. Si l'objectif est atteint ou si tu as besoin d'une décision du chercheur principal, termine par la ligne « STATUT: TERMINÉ ».`,
+          );
           if (DONE_MARKER.test(text)) break;
         }
       } else {
@@ -342,19 +453,37 @@ export function startRun(sessionId: number, opts: RunOptions = {}) {
         for (let r = 0; r < rounds && !signal.aborted; r++) {
           for (const agent of order) {
             if (signal.aborted) break;
-            await runTurn(session, agent, {
-              team,
-              signal,
-              instruction: `[Système] Tour ${r + 1}/${rounds} — c'est à toi, ${agent.name}. Réagis précisément aux dernières contributions (accord, désaccord argumenté, compléments), fais avancer la recherche selon ton rôle en utilisant tes outils quand c'est utile, puis termine par 1 à 3 propositions concrètes pour la suite.`,
-            });
+            await turn(
+              agent,
+              `[Système] Tour ${r + 1}/${rounds} — c'est à toi, ${agent.name}. Réagis précisément aux dernières contributions (accord, désaccord argumenté, compléments), fais avancer la recherche selon ton rôle en utilisant tes outils quand c'est utile, puis termine par 1 à 3 propositions concrètes pour la suite.`,
+            );
           }
         }
       }
     } catch (err) {
-      if (!signal.aborted) publish(sessionId, { type: 'error', error: (err as Error).message });
-    } finally {
-      running.delete(sessionId);
-      setStatus(sessionId, signal.aborted ? 'stopped' : 'idle');
+      if (err instanceof BudgetExceeded) {
+        addSystemMessage(sessionId, `Budget atteint : ${budget.used.toLocaleString('fr-FR')} tokens sur ${budget.limit?.toLocaleString('fr-FR')}. Arrêt de l'exécution.`);
+        finalStatus = 'budget';
+      } else if (!signal.aborted) {
+        publish(sessionId, { type: 'error', error: (err as Error).message });
+        finalStatus = 'error';
+      }
     }
+
+    // Rapport final (campagnes) : autorisé même si le budget principal est atteint.
+    if (opts.report && !signal.aborted) {
+      try {
+        const reporter = (opts.report.agentId ? getAgent(opts.report.agentId) : undefined) ?? team.find((a) => a.id === session.lead_agent_id) ?? team[0];
+        const text = await runTurn(session, reporter, { team, signal, budget: { used: 0, limit: null }, instruction: SYNTHESIS_INSTRUCTION });
+        db.prepare(`UPDATE research_sessions SET summary = ? WHERE id = ?`).run(text, sessionId);
+        createTextDocument(opts.report.title, `# ${opts.report.title}\n\n**Séance :** ${session.title}\n**Objectif :** ${session.objective}\n**Tokens utilisés :** ${budget.used.toLocaleString('fr-FR')}\n\n${text}`, 'rapport,campagne', `séance #${sessionId}`);
+      } catch (err) {
+        publish(sessionId, { type: 'error', error: `Rapport : ${(err as Error).message}` });
+      }
+    }
+
+    running.delete(sessionId);
+    setStatus(sessionId, signal.aborted ? 'stopped' : 'idle');
+    opts.onFinish?.(signal.aborted ? 'stopped' : finalStatus);
   })();
 }

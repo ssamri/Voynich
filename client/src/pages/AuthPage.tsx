@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Lock } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import ThemeToggle from '../components/ThemeToggle';
 import { ErrorBox, Field, Spinner } from '../components/ui';
 
 export default function AuthPage() {
@@ -32,16 +33,17 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center p-4">
+    <div className="relative flex min-h-full items-center justify-center p-4">
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <img src="/favicon.svg" alt="" className="mx-auto mb-4 h-16 w-16" />
           <h1 className="h-display text-4xl">Voynich Lab</h1>
-          <p className="mt-2 text-sm text-parch-400">Laboratoire multi-agents de déchiffrement du manuscrit MS 408</p>
+          <p className="mt-2 text-sm text-fg-400">Laboratoire multi-agents de déchiffrement du manuscrit MS 408</p>
         </div>
         <form onSubmit={submit} className="card space-y-4 p-6">
-          <div className="flex items-center gap-2 text-sm text-parch-300">
-            <Lock className="h-4 w-4 text-gold-500" />
+          <div className="flex items-center gap-2 text-sm text-fg-300">
+            <Lock className="h-4 w-4 text-primary-500" />
             {needsSetup ? 'Première installation : créez le compte administrateur' : 'Back-office sécurisé'}
           </div>
           <Field label="Identifiant">

@@ -7,6 +7,7 @@ import type { Agent, DocumentSummary, ResearchSession } from '../lib/types';
 import { Empty, ErrorBox, Field, Modal, PageHeader, Spinner } from '../components/ui';
 
 export const OBJECTIVE_IDEAS = [
+  'Comparer l’empreinte statistique de Voynich (langues A et B, deux alphabets) à celles des langues médiévales, des chiffres et des textes générés, et en déduire quelles familles d’hypothèses sont éliminées.',
   'Établir un inventaire rigoureux des propriétés statistiques du texte (entropies, positions des glyphes, langues A/B) et en déduire les familles de systèmes d’écriture compatibles ou exclues.',
   'Tester l’hypothèse d’un chiffre de substitution simple sur une langue romane ou le latin : proposer des tables, les appliquer à f1r et évaluer objectivement le résultat.',
   'Analyser les étiquettes de la section zodiacale (f70v–f73v) et chercher des correspondances avec les noms de mois médiévaux.',
@@ -20,13 +21,14 @@ export default function Sessions() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', objective: '', mode: 'roundtable' as 'roundtable' | 'orchestrated', agentIds: [] as number[], leadAgentId: null as number | null, roundsPerRun: 2, contextDocIds: [] as number[] });
+  const [form, setForm] = useState({ title: '', objective: '', mode: 'roundtable' as 'roundtable' | 'orchestrated' | 'cycle', agentIds: [] as number[], leadAgentId: null as number | null, roundsPerRun: 2, contextDocIds: [] as number[], tokenBudget: null as number | null });
 
   const activeAgents = agents.data?.filter((a) => a.enabled) ?? [];
 
   function openNew() {
     setError(null);
-    setForm({ title: '', objective: '', mode: 'roundtable', agentIds: activeAgents.map((a) => a.id), leadAgentId: activeAgents[0]?.id ?? null, roundsPerRun: 2, contextDocIds: [] });
+    const judge = activeAgents.find((a) => /juge|judge/i.test(`${a.name} ${a.roleTitle}`));
+    setForm({ title: '', objective: '', mode: judge ? 'cycle' : 'roundtable', agentIds: activeAgents.map((a) => a.id), leadAgentId: judge?.id ?? activeAgents[0]?.id ?? null, roundsPerRun: 2, contextDocIds: [], tokenBudget: 500000 });
     setOpen(true);
   }
 
@@ -58,8 +60,8 @@ export default function Sessions() {
         }
       />
       {!agents.loading && !activeAgents.length && (
-        <div className="mb-4 rounded-lg border border-gold-500/30 bg-gold-500/5 px-4 py-3 text-sm text-parch-200">
-          Configurez d’abord vos <Link to="/agents" className="text-gold-400 underline">agents</Link>.
+        <div className="mb-4 rounded-lg border border-primary-500/30 bg-primary-500/5 px-4 py-3 text-sm text-fg-200">
+          Configurez d’abord vos <Link to="/agents" className="text-primary-400 underline">agents</Link>.
         </div>
       )}
       <ErrorBox error={sessions.error} />
@@ -72,15 +74,15 @@ export default function Sessions() {
       ) : (
         <div className="space-y-3">
           {sessions.data.map((s) => (
-            <div key={s.id} className="card flex items-center gap-4 p-4 transition hover:border-ink-600">
+            <div key={s.id} className="card flex items-center gap-4 p-4 transition hover:border-surface-600">
               <Link to={`/sessions/${s.id}`} className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-verdigris-400' : 'bg-ink-500'}`} />
+                  <span className={`h-2 w-2 rounded-full ${s.status === 'running' ? 'animate-pulse bg-success-400' : 'bg-surface-500'}`} />
                   <span className="h-display truncate text-xl">{s.title}</span>
                 </div>
-                <p className="mt-1 line-clamp-1 text-sm text-parch-400">{s.objective}</p>
+                <p className="mt-1 line-clamp-1 text-sm text-fg-400">{s.objective}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                  <span className="chip">{s.mode === 'orchestrated' ? 'Dirigée' : 'Table ronde'}</span>
+                  <span className="chip">{s.mode === 'orchestrated' ? 'Dirigée' : s.mode === 'cycle' ? 'Cycles' : 'Table ronde'}</span>
                   <span className="chip">{s.messageCount ?? 0} messages</span>
                   <span className="chip">{formatTokens(s.tokens ?? 0)} tokens</span>
                   {s.updatedAt && <span className="chip">{formatDate(s.updatedAt)}</span>}
@@ -104,7 +106,7 @@ export default function Sessions() {
           </Field>
           <div className="flex flex-wrap gap-2">
             {OBJECTIVE_IDEAS.map((o) => (
-              <button key={o} className="chip hover:border-gold-500/50" onClick={() => setForm({ ...form, objective: o, title: form.title || o.split(/[:,.]/)[0].slice(0, 80) })}>
+              <button key={o} className="chip hover:border-primary-500/50" onClick={() => setForm({ ...form, objective: o, title: form.title || o.split(/[:,.]/)[0].slice(0, 80) })}>
                 {o.slice(0, 60)}…
               </button>
             ))}
@@ -112,21 +114,31 @@ export default function Sessions() {
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Mode">
               <select className="input" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value as typeof form.mode })}>
+                <option value="cycle">Cycles de recherche (hypothèse → test → verdict)</option>
                 <option value="roundtable">Table ronde (chacun son tour)</option>
                 <option value="orchestrated">Dirigée (un agent délègue)</option>
               </select>
             </Field>
-            {form.mode === 'orchestrated' && (
-              <Field label="Directeur de recherche">
+            {form.mode !== 'roundtable' && (
+              <Field label={form.mode === 'cycle' ? 'Juge (plan de test et verdict)' : 'Directeur de recherche'}>
                 <select className="input" value={form.leadAgentId ?? ''} onChange={(e) => setForm({ ...form, leadAgentId: Number(e.target.value) })}>
                   {activeAgents.filter((a) => form.agentIds.includes(a.id)).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </Field>
             )}
-            <Field label="Tours par lancement">
+            <Field label={form.mode === 'cycle' ? 'Cycles par lancement' : 'Tours par lancement'}>
               <input className="input" type="number" min={1} max={20} value={form.roundsPerRun} onChange={(e) => setForm({ ...form, roundsPerRun: Number(e.target.value) })} />
             </Field>
           </div>
+          {form.mode === 'cycle' && (
+            <p className="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-2 text-xs text-fg-200">
+              Chaque cycle : 1) un chercheur propose une hypothèse, 2) le juge fixe le plan de test et ses critères, 3) un chercheur exécute les tests,
+              4) un autre relit et rejoue les expériences, 5) le juge rend le verdict et met la mémoire à jour.
+            </p>
+          )}
+          <Field label="Budget maximal par lancement (tokens)" hint="L’exécution s’arrête proprement une fois ce plafond atteint. Vide = sans plafond.">
+            <input className="input" type="number" min={10000} step={10000} value={form.tokenBudget ?? ''} onChange={(e) => setForm({ ...form, tokenBudget: e.target.value ? Number(e.target.value) : null })} />
+          </Field>
           <div>
             <span className="label">Agents participants (ordre de parole)</span>
             <div className="flex flex-wrap gap-2">
@@ -135,7 +147,7 @@ export default function Sessions() {
                 return (
                   <button
                     key={a.id}
-                    className={`chip py-1 ${on ? 'border-gold-500/60 text-parch-50' : 'opacity-60'}`}
+                    className={`chip py-1 ${on ? 'border-primary-500/60 text-fg-50' : 'opacity-60'}`}
                     onClick={() => setForm({ ...form, agentIds: on ? form.agentIds.filter((x) => x !== a.id) : [...form.agentIds, a.id] })}
                   >
                     <span className="h-2 w-2 rounded-full" style={{ background: a.color }} />
@@ -148,12 +160,12 @@ export default function Sessions() {
           {!!docs.data?.documents.length && (
             <div>
               <span className="label">Documents de contexte (joints à chaque agent ; images visibles par les modèles)</span>
-              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-ink-700 p-2">
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-surface-700 p-2">
                 {docs.data.documents.map((d) => (
-                  <label key={d.id} className="flex cursor-pointer items-center gap-2 text-sm text-parch-200">
+                  <label key={d.id} className="flex cursor-pointer items-center gap-2 text-sm text-fg-200">
                     <input
                       type="checkbox"
-                      className="accent-gold-500"
+                      className="accent-primary-500"
                       checked={form.contextDocIds.includes(d.id)}
                       onChange={(e) => setForm({ ...form, contextDocIds: e.target.checked ? [...form.contextDocIds, d.id] : form.contextDocIds.filter((x) => x !== d.id) })}
                     />

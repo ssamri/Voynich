@@ -74,12 +74,20 @@ export class AnthropicProvider implements LLMProvider {
       eager_input_streaming: true,
     }));
     if (req.webSearch) {
+      // Recherche web + lecture de pages, exécutées côté Anthropic (outils serveur).
       tools.push(
-        adaptive
-          ? { type: 'web_search_20260209', name: 'web_search', max_uses: 5 }
-          : { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
+        ...(adaptive
+          ? ([
+              { type: 'web_search_20260209', name: 'web_search', max_uses: 8 },
+              { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 5, citations: { enabled: true } },
+            ] as BetaToolUnion[])
+          : ([
+              { type: 'web_search_20250305', name: 'web_search', max_uses: 8 },
+              { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 5, citations: { enabled: true } },
+            ] as BetaToolUnion[])),
       );
     }
+    const sources = new Map<string, string>();
 
     const messages = toAnthropicMessages(req.messages);
     const usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
@@ -137,6 +145,7 @@ export class AnthropicProvider implements LLMProvider {
       usage.cacheReadTokens += message.usage.cache_read_input_tokens ?? 0;
       if (stepText) text += (text ? '\n\n' : '') + stepText;
       stopReason = message.stop_reason ?? 'end_turn';
+      reportServerTools(message, events, sources);
 
       if (stopReason === 'refusal') {
         const cat = message.stop_details?.category;
@@ -155,14 +164,76 @@ export class AnthropicProvider implements LLMProvider {
       const results: BetaToolResultBlockParam[] = await Promise.all(
         toolUses.map(async (tu) => {
           events.onToolCall({ id: tu.id, name: tu.name, input: tu.input });
-          const { output, isError } = await executeTool(req.tools, tu.name, tu.input);
-          events.onToolResult({ id: tu.id, name: tu.name, output, isError });
-          return { type: 'tool_result', tool_use_id: tu.id, content: output, is_error: isError };
+          const { output, images, isError } = await executeTool(req.tools, tu.name, tu.input);
+          events.onToolResult({ id: tu.id, name: tu.name, output: images.length ? `${output}\n[${images.length} image(s) transmise(s) au modèle]` : output, isError });
+          return {
+            type: 'tool_result',
+            tool_use_id: tu.id,
+            is_error: isError,
+            content: images.length
+              ? [
+                  { type: 'text', text: output },
+                  ...images.map((im) => ({
+                    type: 'image' as const,
+                    source: { type: 'base64' as const, media_type: im.mediaType as 'image/jpeg', data: im.data },
+                  })),
+                ]
+              : output,
+          };
         }),
       );
       messages.push({ role: 'user', content: results });
     }
 
+    if (sources.size) {
+      const list = `\n\n**Sources web**\n${[...sources].map(([url, title]) => `- [${title || url}](${url})`).join('\n')}`;
+      text += list;
+      events.onText(list);
+    }
     return { text, thinking, usage, model: servedModel, stopReason };
+  }
+}
+
+type LooseBlock = {
+  type: string;
+  id?: string;
+  name?: string;
+  input?: unknown;
+  tool_use_id?: string;
+  content?: unknown;
+  citations?: { url?: string; title?: string }[] | null;
+};
+
+/**
+ * Les outils serveur (recherche web, lecture de page) s'exécutent chez Anthropic :
+ * on les rapporte à l'interface comme des appels d'outils, et on collecte les sources citées.
+ */
+function reportServerTools(message: BetaMessage, events: AgentLoopRequest['events'], sources: Map<string, string>) {
+  const names = new Map<string, string>();
+  for (const raw of message.content) {
+    const b = raw as unknown as LooseBlock;
+    if (b.type === 'server_tool_use' && b.id) {
+      names.set(b.id, b.name ?? 'web');
+      events.onToolCall({ id: b.id, name: b.name ?? 'web', input: b.input });
+    } else if (b.type === 'web_search_tool_result' && b.tool_use_id) {
+      const results = Array.isArray(b.content) ? (b.content as { url: string; title: string }[]) : null;
+      events.onToolResult({
+        id: b.tool_use_id,
+        name: 'web_search',
+        output: results ? results.map((r) => `${r.title} — ${r.url}`).join('\n') || 'Aucun résultat' : `Erreur : ${JSON.stringify(b.content)}`,
+        isError: !results,
+      });
+    } else if (b.type === 'web_fetch_tool_result' && b.tool_use_id) {
+      const c = b.content as { type?: string; url?: string; error_code?: string } | undefined;
+      const ok = c?.type === 'web_fetch_result';
+      events.onToolResult({
+        id: b.tool_use_id,
+        name: names.get(b.tool_use_id) ?? 'web_fetch',
+        output: ok ? `Page lue : ${c?.url}` : `Erreur : ${c?.error_code ?? 'inconnue'}`,
+        isError: !ok,
+      });
+    } else if (b.type === 'text' && b.citations) {
+      for (const c of b.citations) if (c.url) sources.set(c.url, c.title ?? '');
+    }
   }
 }

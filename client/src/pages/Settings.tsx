@@ -47,9 +47,9 @@ export default function SettingsPage() {
         </form>
         <div className="card p-5">
           <h2 className="h-display mb-3 flex items-center gap-2 text-xl">
-            <ShieldCheck className="h-5 w-5 text-verdigris-400" /> Protections actives
+            <ShieldCheck className="h-5 w-5 text-success-400" /> Protections actives
           </h2>
-          <ul className="space-y-2 text-sm text-parch-200">
+          <ul className="space-y-2 text-sm text-fg-200">
             <li>• Mots de passe hachés avec scrypt (sel aléatoire, coût N = 32768).</li>
             <li>• Clés API chiffrées au repos en AES-256-GCM, jamais renvoyées au navigateur.</li>
             <li>• Cookie de session httpOnly, SameSite=Strict, Secure en production ; sessions révocables.</li>
@@ -57,7 +57,7 @@ export default function SettingsPage() {
             <li>• Limitation des tentatives de connexion (10 / 15 min) et journal d’audit.</li>
           </ul>
           <h3 className="label mt-5">Sessions actives</h3>
-          <ul className="space-y-1 text-xs text-parch-300">
+          <ul className="space-y-1 text-xs text-fg-300">
             {sessions.data?.map((s, i) => (
               <li key={i} className="truncate">
                 {formatDate(s.created_at)} · {s.ip} · {s.user_agent}
@@ -72,11 +72,11 @@ export default function SettingsPage() {
           <table className="w-full text-xs">
             <tbody>
               {audit.data?.map((a) => (
-                <tr key={a.id} className="border-t border-ink-700/60">
-                  <td className="whitespace-nowrap py-1.5 pr-3 text-parch-400">{formatDate(a.created_at)}</td>
-                  <td className="py-1.5 pr-3 font-mono text-gold-300">{a.action}</td>
-                  <td className="py-1.5 pr-3 text-parch-300">{a.ip}</td>
-                  <td className="max-w-md truncate py-1.5 font-mono text-parch-400">{a.detail}</td>
+                <tr key={a.id} className="border-t border-surface-700/60">
+                  <td className="whitespace-nowrap py-1.5 pr-3 text-fg-400">{formatDate(a.created_at)}</td>
+                  <td className="py-1.5 pr-3 font-mono text-primary-300">{a.action}</td>
+                  <td className="py-1.5 pr-3 text-fg-300">{a.ip}</td>
+                  <td className="max-w-md truncate py-1.5 font-mono text-fg-400">{a.detail}</td>
                 </tr>
               ))}
             </tbody>

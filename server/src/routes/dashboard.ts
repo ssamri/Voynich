@@ -14,7 +14,11 @@ dashboardRouter.get('/', (_req, res) => {
       memories: one(`SELECT COUNT(*) AS n FROM memories WHERE status != 'archived'`),
       sessions: one('SELECT COUNT(*) AS n FROM research_sessions'),
       messages: one(`SELECT COUNT(*) AS n FROM messages WHERE kind = 'agent'`),
+      experiments: one(`SELECT COUNT(*) AS n FROM experiments WHERE status = 'done'`),
+      passes: one(`SELECT COUNT(*) AS n FROM experiments WHERE verdict = 'pass'`),
+      refs: one('SELECT COUNT(*) AS n FROM ref_corpora'),
     },
+    lastReport: db.prepare(`SELECT id, title, created_at FROM documents WHERE tags LIKE '%campagne%' ORDER BY id DESC LIMIT 1`).get() ?? null,
     memoryByType: db.prepare(`SELECT type, status, COUNT(*) AS n FROM memories GROUP BY type, status`).all(),
     usageByAgent: db
       .prepare(

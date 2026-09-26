@@ -46,11 +46,11 @@ export default function Agents() {
       roleTitle: preset?.title ?? '',
       systemPrompt: preset?.prompt ?? '',
       temperature: null,
-      maxTokens: 16000,
       effort: 'high',
-      color: preset?.color ?? '#c9a227',
+      color: preset?.color ?? '#5b8def',
       tools: Object.keys(meta.data?.toolGroups ?? {}),
-      webSearch: false,
+      maxTokens: p?.kind === 'openai_compatible' ? 8192 : 16000,
+      webSearch: true,
       enabled: true,
     });
   }
@@ -73,31 +73,31 @@ export default function Agents() {
     }
   }
 
+  /** Crée une équipe en répartissant les rôles entre toutes les connexions (payantes et gratuites). */
   async function quickTeam() {
     const presets = meta.data?.presets ?? [];
-    const claude = providers.data?.find((p) => p.kind === 'anthropic');
-    const gpt = providers.data?.find((p) => p.kind === 'openai');
-    if (!claude && !gpt) {
-      toast.err('Ajoutez d’abord une connexion Claude et/ou ChatGPT.');
+    const order: Provider['kind'][] = ['anthropic', 'openai', 'openai_compatible'];
+    const pool = [...(providers.data ?? [])].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+    if (!pool.length) {
+      toast.err('Ajoutez d’abord au moins une connexion IA (Claude, ChatGPT ou une IA gratuite).');
       return;
     }
-    const plan: [string, Provider | undefined][] = [
-      ['cryptanalyst', claude ?? gpt],
-      ['linguist', gpt ?? claude],
-      ['skeptic', claude ?? gpt],
-    ];
-    for (const [key, p] of plan) {
+    const roles = ['cryptanalyst', 'linguist', 'historian', 'judge'];
+    for (const [i, key] of roles.entries()) {
+      const p = pool[i % pool.length];
       const preset = presets.find((x) => x.key === key)!;
       await api.post('/agents', {
-        name: `${preset.name}${p?.kind === 'anthropic' ? ' (Claude)' : p?.kind === 'openai' ? ' (GPT)' : ''}`,
-        providerId: p!.id,
-        model: p!.defaultModel || (p!.kind === 'anthropic' ? 'claude-opus-5' : 'gpt-5'),
+        name: `${preset.name} (${p.name})`,
+        providerId: p.id,
+        model: p.defaultModel || (p.kind === 'anthropic' ? 'claude-opus-5' : p.kind === 'openai' ? 'gpt-5' : 'model'),
         roleTitle: preset.title,
         systemPrompt: preset.prompt,
-        color: p?.kind === 'openai' ? '#10a37f' : preset.color,
+        color: preset.color,
+        maxTokens: p.kind === 'openai_compatible' ? 8192 : 16000,
+        webSearch: true,
       });
     }
-    toast.ok('Équipe créée : cryptanalyste, linguiste, critique.');
+    toast.ok(`Équipe créée : ${roles.length} agents répartis sur ${Math.min(roles.length, pool.length)} connexion(s).`);
     agents.reload();
   }
 
@@ -111,7 +111,7 @@ export default function Agents() {
     <div className="mx-auto max-w-6xl p-4 sm:p-8">
       <PageHeader
         title="Agents"
-        subtitle="Chaque agent associe un modèle (Claude, GPT…) à un rôle, une personnalité de recherche et des outils : bibliothèque, mémoire partagée, corpus EVA, tests de substitution et consultation des autres agents."
+        subtitle="Chaque agent associe un modèle (Claude, GPT…) à un rôle et à des outils : bibliothèque interne, mémoire partagée, recherche internet, corpus EVA, tests de substitution et consultation des autres agents."
         actions={
           <>
             <button className="btn-ghost" onClick={quickTeam}>
@@ -124,8 +124,8 @@ export default function Agents() {
         }
       />
       {!providers.loading && !providers.data?.length && (
-        <div className="mb-4 rounded-lg border border-gold-500/30 bg-gold-500/5 px-4 py-3 text-sm text-parch-200">
-          Aucune connexion IA : commencez par <Link to="/providers" className="text-gold-400 underline">ajouter Claude et ChatGPT</Link>.
+        <div className="mb-4 rounded-lg border border-primary-500/30 bg-primary-500/5 px-4 py-3 text-sm text-fg-200">
+          Aucune connexion IA : commencez par <Link to="/providers" className="text-primary-400 underline">ajouter Claude et ChatGPT</Link>.
         </div>
       )}
       <ErrorBox error={agents.error} />
@@ -142,12 +142,12 @@ export default function Agents() {
             return (
               <div key={a.id} className={`card flex flex-col p-5 ${a.enabled ? '' : 'opacity-60'}`}>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-lg font-bold text-ink-950" style={{ background: a.color }}>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-lg font-bold text-[#0f1420]" style={{ background: a.color }}>
                     {a.name.slice(0, 1)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="h-display truncate text-xl">{a.name}</div>
-                    <div className="line-clamp-2 text-xs text-parch-400">{a.roleTitle || 'Sans rôle défini'}</div>
+                    <div className="line-clamp-2 text-xs text-fg-400">{a.roleTitle || 'Sans rôle défini'}</div>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-1.5">
@@ -156,7 +156,7 @@ export default function Agents() {
                   {a.effort && <span className="chip">effort {a.effort}</span>}
                   {a.webSearch && (
                     <span className="chip">
-                      <Globe className="h-3 w-3" /> web
+                      <Globe className="h-3 w-3" /> internet
                     </span>
                   )}
                   <span className="chip">{a.tools.length} outils</span>
@@ -180,12 +180,12 @@ export default function Agents() {
           <h2 className="h-display mb-3 text-2xl">Rôles types</h2>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {meta.data.presets.map((p) => (
-              <button key={p.key} onClick={() => newAgent(p)} className="card p-4 text-left transition hover:border-gold-500/50">
+              <button key={p.key} onClick={() => newAgent(p)} className="card p-4 text-left transition hover:border-primary-500/50">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
-                  <span className="font-medium text-parch-50">{p.name}</span>
+                  <span className="font-medium text-fg-50">{p.name}</span>
                 </div>
-                <div className="mt-1 text-xs text-parch-400">{p.title}</div>
+                <div className="mt-1 text-xs text-fg-400">{p.title}</div>
               </button>
             ))}
           </div>
@@ -200,7 +200,7 @@ export default function Agents() {
             </Field>
             <Field label="Couleur">
               <div className="flex gap-2">
-                <input type="color" className="h-9 w-12 cursor-pointer rounded border border-ink-600 bg-ink-850" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
+                <input type="color" className="h-9 w-12 cursor-pointer rounded border border-surface-600 bg-surface-850" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
                 <input className="input font-mono" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
               </div>
             </Field>
@@ -210,7 +210,7 @@ export default function Agents() {
                 value={draft.providerId ?? ''}
                 onChange={(e) => {
                   const p = providers.data?.find((x) => x.id === Number(e.target.value));
-                  setDraft({ ...draft, providerId: p?.id ?? null, model: p?.defaultModel ?? draft.model, webSearch: p?.kind === 'anthropic' ? draft.webSearch : false });
+                  setDraft({ ...draft, providerId: p?.id ?? null, model: p?.defaultModel ?? draft.model, maxTokens: p?.kind === 'openai_compatible' ? Math.min(draft.maxTokens, 8192) : draft.maxTokens });
                 }}
               >
                 <option value="">—</option>
@@ -252,18 +252,20 @@ export default function Agents() {
             </Field>
             <div className="flex flex-col justify-end gap-3 pb-1">
               <Toggle checked={draft.enabled} onChange={(v) => setDraft({ ...draft, enabled: v })} label="Agent actif" />
-              {provider?.kind === 'anthropic' && (
-                <Toggle checked={draft.webSearch} onChange={(v) => setDraft({ ...draft, webSearch: v })} label="Recherche web (Claude)" />
-              )}
+              <Toggle
+                checked={draft.webSearch}
+                onChange={(v) => setDraft({ ...draft, webSearch: v })}
+                label={provider?.kind === 'openai_compatible' ? 'Recherche internet (outils de l’application)' : 'Recherche internet (intégrée)'}
+              />
             </div>
             <div className="md:col-span-2">
               <span className="label">Outils</span>
               <div className="grid gap-2 sm:grid-cols-2">
                 {Object.entries(meta.data?.toolGroups ?? {}).map(([key, label]) => (
-                  <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-ink-700 px-3 py-2 text-sm text-parch-200 hover:border-ink-600">
+                  <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-700 px-3 py-2 text-sm text-fg-200 hover:border-surface-600">
                     <input
                       type="checkbox"
-                      className="accent-gold-500"
+                      className="accent-primary-500"
                       checked={draft.tools.includes(key)}
                       onChange={(e) => setDraft({ ...draft, tools: e.target.checked ? [...draft.tools, key] : draft.tools.filter((t) => t !== key) })}
                     />

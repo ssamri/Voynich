@@ -17,6 +17,27 @@ export interface ProviderKindInfo {
   suggestedModels: string[];
 }
 
+export interface ProviderPreset {
+  id: string;
+  name: string;
+  description: string;
+  access: 'local' | 'free_tier';
+  baseUrl: string;
+  keyRequired: boolean;
+  signupUrl?: string;
+  defaultModel: string;
+  suggestedModels: string[];
+  maxTokens: number;
+  color: string;
+  notes?: string;
+}
+
+export interface WebSearchSettings {
+  engine: 'wikipedia' | 'tavily' | 'brave';
+  hasKey: boolean;
+  keyHint: string | null;
+}
+
 export type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export interface Agent {
@@ -78,6 +99,7 @@ export interface Memory {
   pinned: number;
   author_label: string | null;
   session_id: number | null;
+  evidence?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,13 +108,14 @@ export interface ResearchSession {
   id: number;
   title: string;
   objective: string;
-  mode: 'roundtable' | 'orchestrated';
+  mode: 'roundtable' | 'orchestrated' | 'cycle';
   agentIds: number[];
   leadAgentId: number | null;
   roundsPerRun: number;
   contextDocIds: number[];
   status: string;
   summary: string | null;
+  tokenBudget?: number | null;
   messageCount?: number;
   tokens?: number;
   updatedAt?: string;

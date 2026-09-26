@@ -25,8 +25,13 @@ export interface MemoryRow {
   author_agent_id: number | null;
   author_label: string | null;
   session_id: number | null;
+  evidence: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export function setEvidence(id: number, evidence: string) {
+  db.prepare('UPDATE memories SET evidence = ? WHERE id = ?').run(evidence, id);
 }
 
 export function createMemory(m: {
@@ -39,6 +44,7 @@ export function createMemory(m: {
   authorAgentId?: number | null;
   authorLabel?: string | null;
   sessionId?: number | null;
+  evidence?: string | null;
 }) {
   const info = db
     .prepare(
@@ -56,7 +62,9 @@ export function createMemory(m: {
       m.authorLabel ?? null,
       m.sessionId ?? null,
     );
-  return getMemory(Number(info.lastInsertRowid))!;
+  const id = Number(info.lastInsertRowid);
+  if (m.evidence) setEvidence(id, m.evidence);
+  return getMemory(id)!;
 }
 
 export function getMemory(id: number) {
@@ -111,5 +119,5 @@ export function formatMemory(m: MemoryRow) {
   const status = m.status === 'active' ? '' : ` [${m.status}]`;
   return `#${m.id} (${MEMORY_LABELS[m.type] ?? m.type}, confiance ${Math.round(m.confidence * 100)} %${status}${
     m.author_label ? `, par ${m.author_label}` : ''
-  }) ${m.title}\n${m.content}`;
+  }) ${m.title}\n${m.content}${m.evidence ? `\nPreuve : ${m.evidence}` : ''}`;
 }

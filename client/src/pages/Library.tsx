@@ -99,10 +99,10 @@ export default function Library() {
         }}
         onDragLeave={() => setDrag(false)}
         onDrop={onDrop}
-        className={`card mb-6 flex flex-col items-center gap-3 border-dashed p-6 text-center transition ${drag ? 'border-gold-500 bg-gold-500/5' : ''}`}
+        className={`card mb-6 flex flex-col items-center gap-3 border-dashed p-6 text-center transition ${drag ? 'border-primary-500 bg-primary-500/5' : ''}`}
       >
-        <Upload className="h-8 w-8 text-gold-500/80" />
-        <div className="text-sm text-parch-200">Glissez-déposez vos fichiers : PDF, TXT, Markdown, CSV, JSON, images PNG/JPEG/WebP (folios)</div>
+        <Upload className="h-8 w-8 text-primary-500/80" />
+        <div className="text-sm text-fg-200">Glissez-déposez vos fichiers : PDF, TXT, Markdown, CSV, JSON, images PNG/JPEG/WebP (folios)</div>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <input className="input w-56 py-1.5" placeholder="Étiquettes (optionnel)" value={tags} onChange={(e) => setTags(e.target.value)} />
           <button className="btn-primary py-1.5" onClick={() => fileInput.current?.click()} disabled={uploading}>
@@ -113,7 +113,7 @@ export default function Library() {
       </div>
 
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-parch-400" />
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-fg-400" />
         <input className="input pl-9" placeholder="Recherche plein texte dans tous les documents…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <ErrorBox error={lib.error} />
@@ -122,9 +122,9 @@ export default function Library() {
         <div className="mb-6 space-y-2">
           <div className="label">{lib.data.hits.length} passage(s) trouvé(s)</div>
           {lib.data.hits.map((h, i) => (
-            <button key={i} onClick={() => open(h.document_id)} className="card block w-full p-3 text-left text-sm hover:border-ink-600">
-              <div className="text-xs text-gold-400">{h.title}</div>
-              <div className="mt-1 text-parch-200">{h.snippet}</div>
+            <button key={i} onClick={() => open(h.document_id)} className="card block w-full p-3 text-left text-sm hover:border-surface-600">
+              <div className="text-xs text-primary-400">{h.title}</div>
+              <div className="mt-1 text-fg-200">{h.snippet}</div>
             </button>
           ))}
         </div>
@@ -137,15 +137,15 @@ export default function Library() {
           Ajoutez par exemple les travaux de Currier, D’Imperio (« The Voynich Manuscript: An Elegant Enigma »), les articles de Zandbergen, Davis, Bowern & Lindemann, ainsi que vos propres notes.
         </Empty>
       ) : (
-        <div className="card divide-y divide-ink-700/70">
+        <div className="card divide-y divide-surface-700/70">
           {lib.data.documents.map((d) => {
             const Icon = ICONS[d.kind];
             return (
               <div key={d.id} className="flex items-center gap-3 px-4 py-3">
-                <Icon className="h-5 w-5 shrink-0 text-gold-500/80" />
+                <Icon className="h-5 w-5 shrink-0 text-primary-500/80" />
                 <button className="min-w-0 flex-1 text-left" onClick={() => open(d.id)}>
-                  <div className="truncate text-sm text-parch-50">{d.title}</div>
-                  <div className="text-xs text-parch-400">
+                  <div className="truncate text-sm text-fg-50">{d.title}</div>
+                  <div className="text-xs text-fg-400">
                     {d.kind.toUpperCase()} · {formatBytes(d.size)}
                     {d.chars ? ` · ${d.chars.toLocaleString('fr-FR')} caractères` : ''} · {formatDate(d.created_at)}
                     {d.tags && ` · ${d.tags}`}
@@ -180,7 +180,7 @@ export default function Library() {
                 Ouvrir le PDF original
               </a>
             )}
-            {viewing.content && <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-lg bg-ink-850 p-4 font-mono text-xs text-parch-200">{viewing.content.slice(0, 200_000)}</pre>}
+            {viewing.content && <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap rounded-lg bg-surface-850 p-4 font-mono text-xs text-fg-200">{viewing.content.slice(0, 200_000)}</pre>}
             <div className="flex justify-end gap-2">
               <button className="btn-ghost" onClick={() => setViewing(null)}>Fermer</button>
               <button className="btn-primary" onClick={saveViewing}>Enregistrer</button>

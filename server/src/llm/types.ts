@@ -27,7 +27,13 @@ export interface ToolDefinition<I = unknown> {
   jsonSchema: Record<string, unknown>;
   /** Schéma zod pour valider l'entrée avant exécution. */
   input: z.ZodType<I>;
-  run: (input: I) => Promise<string> | string;
+  run: (input: I) => Promise<string | ToolOutput> | string | ToolOutput;
+}
+
+/** Résultat d'outil enrichi : texte + images (ex. un folio du manuscrit pour les modèles multimodaux). */
+export interface ToolOutput {
+  text: string;
+  images?: { mediaType: string; data: string }[];
 }
 
 export interface Usage {
@@ -74,17 +80,19 @@ export async function executeTool(
   tools: ToolDefinition<any>[],
   name: string,
   rawInput: unknown,
-): Promise<{ output: string; isError: boolean }> {
+): Promise<{ output: string; images: { mediaType: string; data: string }[]; isError: boolean }> {
   const tool = tools.find((t) => t.name === name);
-  if (!tool) return { output: `Outil inconnu : ${name}`, isError: true };
+  if (!tool) return { output: `Outil inconnu : ${name}`, images: [], isError: true };
   const parsed = tool.input.safeParse(rawInput);
   if (!parsed.success) {
-    return { output: `Entrée invalide pour ${name} : ${parsed.error.message}`, isError: true };
+    return { output: `Entrée invalide pour ${name} : ${parsed.error.message}`, images: [], isError: true };
   }
   try {
     const out = await tool.run(parsed.data);
-    return { output: out.length > 60_000 ? `${out.slice(0, 60_000)}\n…[tronqué]` : out, isError: false };
+    const text = typeof out === 'string' ? out : out.text;
+    const images = typeof out === 'string' ? [] : out.images ?? [];
+    return { output: text.length > 60_000 ? `${text.slice(0, 60_000)}\n…[tronqué]` : text, images, isError: false };
   } catch (err) {
-    return { output: `Erreur de l'outil ${name} : ${(err as Error).message}`, isError: true };
+    return { output: `Erreur de l'outil ${name} : ${(err as Error).message}`, images: [], isError: true };
   }
 }

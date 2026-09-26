@@ -180,15 +180,135 @@ const migrations: string[] = [
   CREATE INDEX corpus_lines_folio ON corpus_lines(folio, ord);
   CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   `,
+  // 2 — moteur scientifique : corpus de référence, expériences, indices, images, annotations, campagnes
+  `
+  CREATE TABLE ref_corpora (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    language TEXT,
+    genre TEXT,
+    kind TEXT NOT NULL CHECK (kind IN ('natural','cipher','generated')),
+    source TEXT,
+    notes TEXT,
+    params TEXT,
+    text TEXT NOT NULL,
+    tokens INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE experiments (
+    id INTEGER PRIMARY KEY,
+    kind TEXT NOT NULL,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'done' CHECK (status IN ('planned','running','done','error')),
+    verdict TEXT CHECK (verdict IN ('pass','fail','inconclusive') OR verdict IS NULL),
+    criteria TEXT,
+    params TEXT NOT NULL DEFAULT '{}',
+    result TEXT,
+    summary TEXT,
+    corpus_version TEXT,
+    seed INTEGER,
+    session_id INTEGER,
+    agent_id INTEGER,
+    author_label TEXT,
+    duration_ms INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    finished_at TEXT
+  );
+  CREATE INDEX experiments_session ON experiments(session_id, id);
+
+  CREATE TABLE cribs (
+    id INTEGER PRIMARY KEY,
+    folio TEXT,
+    locus TEXT,
+    eva TEXT NOT NULL,
+    expected TEXT NOT NULL,
+    language TEXT,
+    category TEXT,
+    source TEXT,
+    confidence REAL NOT NULL DEFAULT 0.3,
+    notes TEXT,
+    author_label TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE folio_images (
+    folio TEXT PRIMARY KEY,
+    canvas_label TEXT,
+    image_service TEXT,
+    image_url TEXT,
+    width INTEGER,
+    height INTEGER,
+    ord INTEGER
+  );
+
+  CREATE TABLE annotations (
+    id INTEGER PRIMARY KEY,
+    folio TEXT NOT NULL,
+    x REAL NOT NULL, y REAL NOT NULL, w REAL NOT NULL, h REAL NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'label',
+    locus TEXT,
+    title TEXT,
+    note TEXT,
+    author_label TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX annotations_folio ON annotations(folio);
+
+  CREATE TABLE campaigns (
+    id INTEGER PRIMARY KEY,
+    session_id INTEGER NOT NULL REFERENCES research_sessions(id) ON DELETE CASCADE,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    hour INTEGER NOT NULL DEFAULT 2,
+    rounds INTEGER NOT NULL DEFAULT 4,
+    token_budget INTEGER NOT NULL DEFAULT 300000,
+    report_agent_id INTEGER,
+    last_run_at TEXT,
+    last_status TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  ALTER TABLE memories ADD COLUMN evidence TEXT;
+  UPDATE agents SET tools = json_insert(json_insert(tools, '$[#]', 'science'), '$[#]', 'images');
+
+  -- Nouveau mode de séance « cycle » : on reconstruit la table pour élargir la contrainte.
+  CREATE TABLE research_sessions_new (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    objective TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'roundtable' CHECK (mode IN ('roundtable','orchestrated','cycle')),
+    agent_ids TEXT NOT NULL DEFAULT '[]',
+    lead_agent_id INTEGER,
+    rounds_per_run INTEGER NOT NULL DEFAULT 2,
+    context_doc_ids TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'idle',
+    summary TEXT,
+    token_budget INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO research_sessions_new(id, title, objective, mode, agent_ids, lead_agent_id, rounds_per_run, context_doc_ids, status, summary, created_at, updated_at)
+    SELECT id, title, objective, mode, agent_ids, lead_agent_id, rounds_per_run, context_doc_ids, status, summary, created_at, updated_at FROM research_sessions;
+  DROP TABLE research_sessions;
+  ALTER TABLE research_sessions_new RENAME TO research_sessions;
+  `,
 ];
 
 function migrate() {
   const version = db.pragma('user_version', { simple: true }) as number;
-  for (let i = version; i < migrations.length; i++) {
-    db.transaction(() => {
-      db.exec(migrations[i]);
-      db.pragma(`user_version = ${i + 1}`);
-    })();
+  // Les reconstructions de tables exigent de suspendre les clés étrangères (hors transaction).
+  db.pragma('foreign_keys = OFF');
+  try {
+    for (let i = version; i < migrations.length; i++) {
+      db.transaction(() => {
+        db.exec(migrations[i]);
+        db.pragma(`user_version = ${i + 1}`);
+      })();
+    }
+    const problems = db.pragma('foreign_key_check') as unknown[];
+    if (problems.length) console.warn('[db] incohérences de clés étrangères :', problems.length);
+  } finally {
+    db.pragma('foreign_keys = ON');
   }
 }
 migrate();
