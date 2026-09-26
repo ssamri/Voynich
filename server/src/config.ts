@@ -3,9 +3,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const root = path.resolve(process.env.DATA_DIR ?? path.join(process.cwd(), 'data'));
-fs.mkdirSync(root, { recursive: true });
-fs.mkdirSync(path.join(root, 'uploads'), { recursive: true });
+/** Dossier de données ; si DATA_DIR n'est pas inscriptible, repli sur ./data plutôt qu'un crash au démarrage. */
+function resolveDataDir(): string {
+  const fallback = path.join(process.cwd(), 'data');
+  for (const dir of [process.env.DATA_DIR, fallback]) {
+    if (!dir) continue;
+    try {
+      const abs = path.resolve(dir);
+      fs.mkdirSync(path.join(abs, 'uploads'), { recursive: true });
+      fs.accessSync(abs, fs.constants.W_OK);
+      return abs;
+    } catch (err) {
+      console.error(`[config] ⚠ dossier de données inutilisable (${dir}) : ${(err as Error).message}`);
+    }
+  }
+  throw new Error('Aucun dossier de données inscriptible (DATA_DIR).');
+}
+const root = resolveDataDir();
 
 /**
  * Secret maître : sert à chiffrer les clés API au repos (AES-256-GCM).
