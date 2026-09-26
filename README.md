@@ -288,3 +288,25 @@ Un premier prototype (serveur Express + SQLite, front React) existe déjà dans 
 Il couvre une partie des fonctionnalités ci-dessus (agents, orchestrateur, corpus, bibliothèque, mémoire). Il sera
 **migré vers Supabase** et adapté à ce plan (thème bleu doux clair/sombre, salle de travail collaborative avec
 fichiers) à partir de la phase 1. Le code réutilisable (adaptateurs IA, parseur IVTFF, statistiques) sera conservé.
+
+---
+
+## 9. Déploiement
+
+### Hébergement mutualisé (Hostinger, etc.)
+
+L'application n'utilise **aucun module natif à compiler** (SQLite intégré à Node) : elle s'installe sans Python ni compilateur.
+
+- Version de Node : **22.13 ou plus** (sélectionner 22.x dans le panneau).
+- Commande de build : `npm install && npm run build` · commande de démarrage : `npm start`.
+- Variables d'environnement obligatoires : `APP_SECRET` (≥ 32 caractères, à conserver précieusement), `NODE_ENV=production`, `SETUP_TOKEN` (recommandé).
+- **`DATA_DIR` doit pointer vers un dossier persistant hors du dépôt** (ex. `/home/<utilisateur>/voynich-data`) : sinon la base
+  et les fichiers téléversés sont effacés à chaque redéploiement.
+- Si l'hébergeur fournit le port via `PORT`, il est utilisé ; si le proxy ne joint pas l'application, définir `HOST=0.0.0.0`.
+
+### Docker
+
+```bash
+docker build -t voynich-lab .
+docker run -d -p 127.0.0.1:8787:8787 -v voynich-data:/data -e APP_SECRET=... -e SETUP_TOKEN=... voynich-lab
+```

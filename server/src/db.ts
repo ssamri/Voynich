@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { Database } from './sqlite.js';
 import { config } from './config.js';
 
 export const db = new Database(config.dbFile);
