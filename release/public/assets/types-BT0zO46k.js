@@ -1,0 +1,1 @@
+var e={hypothesis:`Hypothèse`,finding:`Découverte`,fact:`Fait établi`,dead_end:`Impasse`,glossary:`Glossaire`,question:`Question ouverte`,plan:`Plan`},t={active:`Active`,confirmed:`Confirmée`,refuted:`Réfutée`,archived:`Archivée`};export{t as n,e as t};

@@ -5,15 +5,20 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const entry = path.join(here, 'dist', 'index.js');
 let buildLog = '';
 
+/** Premier bundle complet trouvé : dist/ (build de l'hébergeur) puis release/ (précompilé, versionné). */
+function findBundle() {
+  return ['dist', 'release'].map((d) => path.join(here, d)).find((d) => fs.existsSync(path.join(d, 'index.js')) && fs.existsSync(path.join(d, 'public', 'index.html')));
+}
+
 function ensureBuilt() {
-  if (fs.existsSync(entry) && fs.existsSync(path.join(here, 'dist', 'public', 'index.html'))) return;
-  console.log('[voynich] dist/ absent : compilation au démarrage…');
+  const found = findBundle();
+  if (found) return found;
+  console.log('[voynich] aucun bundle (dist/, release/) : compilation au démarrage…');
   // npm n'est pas forcément dans le PATH à l'exécution : on appelle les outils directement avec Node.
   const bin = (rel) => path.join(here, 'node_modules', rel);
   const run = (script, args, cwd) => {
@@ -27,6 +32,7 @@ function ensureBuilt() {
     buildLog = `${err?.stdout ?? ''}${err?.stderr ?? ''}`.slice(-4000);
     throw new Error(`échec de la compilation : ${err?.message ?? err}`);
   }
+  return path.join(here, 'dist');
 }
 
 function showError(err) {
@@ -44,8 +50,9 @@ function showError(err) {
 }
 
 try {
-  ensureBuilt();
-  import('./dist/index.js').catch(showError);
+  const bundle = ensureBuilt();
+  console.log(`[voynich] démarrage depuis ${path.relative(here, bundle)}/`);
+  import(pathToFileURL(path.join(bundle, 'index.js')).href).catch(showError);
 } catch (err) {
   showError(err);
 }
