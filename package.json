@@ -3,7 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "description": "Laboratoire multi-agents (Claude, ChatGPT…) pour l'étude et le déchiffrement du manuscrit de Voynich",
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
     "dev": "concurrently -k -n api,web -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w client && npm run build -w server",
@@ -15,6 +18,6 @@
     "concurrently": "^9.2.1"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.13"
   }
 }
