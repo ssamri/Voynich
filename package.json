@@ -3,6 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "description": "Laboratoire multi-agents (Claude, ChatGPT…) pour l'étude et le déchiffrement du manuscrit de Voynich",
+  "type": "module",
+  "main": "dist/index.js",
   "workspaces": [
     "server",
     "client"
@@ -10,7 +12,7 @@
   "scripts": {
     "dev": "concurrently -k -n api,web -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w client && npm run build -w server",
-    "start": "NODE_ENV=production npm run start -w server",
+    "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning dist/index.js",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
     "test": "npm test -w server"
   },

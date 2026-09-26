@@ -299,6 +299,7 @@ L'application n'utilise **aucun module natif à compiler** (SQLite intégré à 
 
 - Version de Node : **22.13 ou plus** (sélectionner 22.x dans le panneau).
 - Commande de build : `npm install && npm run build` · commande de démarrage : `npm start`.
+- Dossier de sortie : **`dist`** · fichier d'entrée : **`dist/index.js`** (le serveur et l'interface y sont regroupés).
 - Variables d'environnement obligatoires : `APP_SECRET` (≥ 32 caractères, à conserver précieusement), `NODE_ENV=production`, `SETUP_TOKEN` (recommandé).
 - **`DATA_DIR` doit pointer vers un dossier persistant hors du dépôt** (ex. `/home/<utilisateur>/voynich-data`) : sinon la base
   et les fichiers téléversés sont effacés à chaque redéploiement.
