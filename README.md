@@ -308,6 +308,10 @@ L'application n'utilise **aucun module natif à compiler** (SQLite intégré à 
 - Si l'hébergeur fournit `PORT` (numéro ou socket), il est utilisé et l'application écoute sur toutes les interfaces.
 - Les journaux d'exécution doivent afficher `[voynich] API prête sur …` ; `/api/health` répond `{"ok":true}`.
 
+**Bundle précompilé `release/`** : Hostinger ne conserve pas `dist/` à l'exécution et ne peut pas compiler au démarrage
+(limite de processus). `npm run build` copie donc `dist/` dans `release/`, **versionné** : après toute modification du code,
+lancer `npm run build` et committer `release/`. `server.js` démarre depuis `dist/` s'il existe, sinon depuis `release/`.
+
 ### Docker
 
 ```bash
