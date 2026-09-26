@@ -63,8 +63,8 @@ app.use('/api', api);
 
 // En production, le serveur sert aussi le front compilé (client/dist).
 const here = path.dirname(fileURLToPath(import.meta.url));
-const clientDist = path.resolve(here, '../../client/dist');
-if (fs.existsSync(clientDist)) {
+const clientDist = [path.join(here, 'public'), path.resolve(here, '../client/dist')].find((d) => fs.existsSync(path.join(d, 'index.html')));
+if (clientDist) {
   app.use(express.static(clientDist, { index: false, maxAge: '1h' }));
   app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(clientDist, 'index.html')));
 }
