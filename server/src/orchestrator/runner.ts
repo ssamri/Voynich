@@ -106,6 +106,7 @@ function systemPrompt(agent: AgentRow, session: SessionRow, team: AgentRow[]) {
 
 /** Décrit à l'agent les sources auxquelles il a accès et comment les combiner. */
 function capabilities(agent: AgentRow) {
+  const generic = usesGenericWeb(agent);
   const groups = JSON.parse(agent.tools) as string[];
   const lines: string[] = [];
   if (groups.includes('library')) lines.push("- **Bibliothèque interne** (search_library, read_document) : articles, livres, notes et fichiers partagés par l'équipe.");
@@ -113,11 +114,20 @@ function capabilities(agent: AgentRow) {
   if (groups.includes('corpus')) lines.push('- **Corpus EVA** (corpus_get_folio, corpus_search, corpus_stats) : transcription du manuscrit et statistiques.');
   if (groups.includes('substitution')) lines.push('- **Tests de substitution** (apply_substitution).');
   if (groups.includes('collaboration')) lines.push('- **Consultation des autres agents** (ask_agent).');
-  if (agent.web_search) lines.push('- **Recherche internet** (web_search) : publications, bases de données, travaux récents sur le manuscrit.');
+  if (agent.web_search)
+    lines.push(
+      `- **Recherche internet** (web_search${generic ? ', fetch_url pour lire une page' : ''}) : publications, bases de données, travaux récents sur le manuscrit.`,
+    );
   if (!lines.length) return '';
   return `## Tes sources et outils\n${lines.join('\n')}\n\nMéthode : consulte d'abord la mémoire et la bibliothèque internes${
     agent.web_search ? ", puis complète par une recherche internet ciblée quand une information manque ou doit être vérifiée. Privilégie les sources sérieuses (publications universitaires, voynich.nu, Beinecke Library) et cite toujours tes sources web (URL)" : ''
   }. Consigne dans la mémoire partagée ce qui mérite d'être retenu, avec sa source.`;
+}
+
+/** Les modèles sans recherche web native (fournisseurs compatibles OpenAI) utilisent nos outils web génériques. */
+function usesGenericWeb(agent: AgentRow) {
+  if (!agent.web_search || !agent.provider_id) return false;
+  return getProviderRow(agent.provider_id)?.kind === 'openai_compatible';
 }
 
 /** Mémoire injectée dans le dernier message (volatile) pour préserver le cache du prompt système. */
@@ -255,6 +265,7 @@ async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions):
       agentName: agent.name,
       groups,
       otherAgents: others.map((a) => a.name),
+      genericWeb: providerRow.kind === 'openai_compatible' && Boolean(agent.web_search),
       askAgent: opts.consultedBy
         ? undefined
         : async (name, question) => {
@@ -277,7 +288,7 @@ async function runTurn(session: SessionRow, agent: AgentRow, opts: TurnOptions):
       maxTokens: agent.max_tokens,
       temperature: agent.temperature,
       effort: agent.effort,
-      webSearch: Boolean(agent.web_search),
+      webSearch: Boolean(agent.web_search) && providerRow.kind !== 'openai_compatible',
       maxSteps: MAX_TOOL_STEPS,
       signal: opts.signal,
       events: {

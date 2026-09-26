@@ -46,11 +46,11 @@ export default function Agents() {
       roleTitle: preset?.title ?? '',
       systemPrompt: preset?.prompt ?? '',
       temperature: null,
-      maxTokens: 16000,
       effort: 'high',
       color: preset?.color ?? '#5b8def',
       tools: Object.keys(meta.data?.toolGroups ?? {}),
-      webSearch: p?.kind === 'anthropic' || p?.kind === 'openai',
+      maxTokens: p?.kind === 'openai_compatible' ? 8192 : 16000,
+      webSearch: true,
       enabled: true,
     });
   }
@@ -73,32 +73,31 @@ export default function Agents() {
     }
   }
 
+  /** Crée une équipe en répartissant les rôles entre toutes les connexions (payantes et gratuites). */
   async function quickTeam() {
     const presets = meta.data?.presets ?? [];
-    const claude = providers.data?.find((p) => p.kind === 'anthropic');
-    const gpt = providers.data?.find((p) => p.kind === 'openai');
-    if (!claude && !gpt) {
-      toast.err('Ajoutez d’abord une connexion Claude et/ou ChatGPT.');
+    const order: Provider['kind'][] = ['anthropic', 'openai', 'openai_compatible'];
+    const pool = [...(providers.data ?? [])].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+    if (!pool.length) {
+      toast.err('Ajoutez d’abord au moins une connexion IA (Claude, ChatGPT ou une IA gratuite).');
       return;
     }
-    const plan: [string, Provider | undefined][] = [
-      ['cryptanalyst', claude ?? gpt],
-      ['linguist', gpt ?? claude],
-      ['skeptic', claude ?? gpt],
-    ];
-    for (const [key, p] of plan) {
+    const roles = ['cryptanalyst', 'linguist', 'skeptic', 'historian'].slice(0, Math.max(3, Math.min(4, pool.length)));
+    for (const [i, key] of roles.entries()) {
+      const p = pool[i % pool.length];
       const preset = presets.find((x) => x.key === key)!;
       await api.post('/agents', {
-        name: `${preset.name}${p?.kind === 'anthropic' ? ' (Claude)' : p?.kind === 'openai' ? ' (GPT)' : ''}`,
-        providerId: p!.id,
-        model: p!.defaultModel || (p!.kind === 'anthropic' ? 'claude-opus-5' : 'gpt-5'),
+        name: `${preset.name} (${p.name})`,
+        providerId: p.id,
+        model: p.defaultModel || (p.kind === 'anthropic' ? 'claude-opus-5' : p.kind === 'openai' ? 'gpt-5' : 'model'),
         roleTitle: preset.title,
         systemPrompt: preset.prompt,
-        color: p?.kind === 'openai' ? '#10a37f' : preset.color,
-        webSearch: p?.kind === 'anthropic' || p?.kind === 'openai',
+        color: preset.color,
+        maxTokens: p.kind === 'openai_compatible' ? 8192 : 16000,
+        webSearch: true,
       });
     }
-    toast.ok('Équipe créée : cryptanalyste, linguiste, critique.');
+    toast.ok(`Équipe créée : ${roles.length} agents répartis sur ${Math.min(roles.length, pool.length)} connexion(s).`);
     agents.reload();
   }
 
@@ -211,7 +210,7 @@ export default function Agents() {
                 value={draft.providerId ?? ''}
                 onChange={(e) => {
                   const p = providers.data?.find((x) => x.id === Number(e.target.value));
-                  setDraft({ ...draft, providerId: p?.id ?? null, model: p?.defaultModel ?? draft.model, webSearch: p?.kind === 'anthropic' || p?.kind === 'openai' });
+                  setDraft({ ...draft, providerId: p?.id ?? null, model: p?.defaultModel ?? draft.model, maxTokens: p?.kind === 'openai_compatible' ? Math.min(draft.maxTokens, 8192) : draft.maxTokens });
                 }}
               >
                 <option value="">—</option>
@@ -253,9 +252,11 @@ export default function Agents() {
             </Field>
             <div className="flex flex-col justify-end gap-3 pb-1">
               <Toggle checked={draft.enabled} onChange={(v) => setDraft({ ...draft, enabled: v })} label="Agent actif" />
-              {(provider?.kind === 'anthropic' || provider?.kind === 'openai') && (
-                <Toggle checked={draft.webSearch} onChange={(v) => setDraft({ ...draft, webSearch: v })} label="Recherche internet" />
-              )}
+              <Toggle
+                checked={draft.webSearch}
+                onChange={(v) => setDraft({ ...draft, webSearch: v })}
+                label={provider?.kind === 'openai_compatible' ? 'Recherche internet (outils de l’application)' : 'Recherche internet (intégrée)'}
+              />
             </div>
             <div className="md:col-span-2">
               <span className="label">Outils</span>

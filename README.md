@@ -80,10 +80,24 @@ Functions resteront possibles pour de petites tâches (ex. extraction de texte d
 
 ### 3.2 Connexions IA (fournisseurs)
 
-- Claude (Anthropic) et ChatGPT (OpenAI) au lancement ; architecture ouverte pour ajouter ensuite Mistral,
-  Gemini, DeepSeek, Ollama, etc. (tout fournisseur compatible OpenAI).
-- Clés API saisies une fois, **stockées dans Supabase Vault**, lues uniquement par le worker.
-- Bouton « Tester la connexion » et liste des modèles disponibles.
+- **Payantes** : Claude (Anthropic) et ChatGPT (OpenAI).
+- **Gratuites ou open source**, toutes branchées via l'interface compatible OpenAI :
+
+| Fournisseur | Accès | Exemples de modèles | Clé |
+|---|---|---|---|
+| **Ollama** | Local, open source, 100 % gratuit et privé | Qwen3, Llama 3.1, gpt-oss, Mistral Small | Aucune |
+| **LM Studio** | Local, open source, 100 % gratuit | tout modèle chargé | Aucune |
+| **Google Gemini** | En ligne, offre gratuite | Gemini 2.5 Flash / Pro | Gratuite (AI Studio) |
+| **Groq** | En ligne, offre gratuite | gpt-oss-120b, Llama 3.3 70B, Qwen3, Kimi K2 | Gratuite |
+| **OpenRouter** | En ligne, modèles `:free` | DeepSeek, Qwen3, Llama 3.3… | Gratuite |
+| **Mistral AI** | En ligne, offre « Experiment » | Mistral Small / Medium / Large | Gratuite |
+| **Cerebras** | En ligne, offre gratuite | gpt-oss-120b, Llama 3.3, Qwen3 | Gratuite |
+| **GitHub Models** | En ligne, quotas gratuits | GPT-4.1 mini, Llama, DeepSeek | Jeton GitHub |
+| **Hugging Face** | En ligne, crédits mensuels | gpt-oss, Llama, Qwen | Jeton gratuit |
+
+  Les offres gratuites et les noms de modèles évoluent : la liste réelle est récupérée auprès du fournisseur
+  (« Tester la connexion »). Un modèle qui ne gère pas les outils bascule automatiquement en mode « réponse simple ».
+- Clés API chiffrées, lues uniquement par le serveur ; bouton « Tester la connexion ».
 
 ### 3.3 Agents
 
@@ -96,7 +110,7 @@ Functions resteront possibles pour de petites tâches (ex. extraction de texte d
 
 ### 3.4 Outils des agents
 
-Les deux agents (Claude et ChatGPT) ont accès **à la bibliothèque interne, à la mémoire partagée et à la recherche internet**. Consigne donnée aux agents : consulter d'abord la mémoire et la bibliothèque, puis compléter sur internet, citer leurs sources et consigner les acquis dans la mémoire.
+Tous les agents (Claude, ChatGPT et les IA gratuites) ont accès **à la bibliothèque interne, à la mémoire partagée et à la recherche internet**. Consigne donnée aux agents : consulter d'abord la mémoire et la bibliothèque, puis compléter sur internet, citer leurs sources et consigner les acquis dans la mémoire.
 
 
 | Outil | Usage |
@@ -107,8 +121,8 @@ Les deux agents (Claude et ChatGPT) ont accès **à la bibliothèque interne, à
 | `apply_substitution` | Tester une table de déchiffrement sur un folio |
 | `ask_agent` | Consulter un autre agent |
 | `ask_human` | Vous poser une question et attendre la réponse |
-| `web_search` | **Recherche internet** — native chez Claude et chez ChatGPT, sources citées en fin de réponse |
-| `web_fetch` | Lecture complète d'une page web (Claude) |
+| `web_search` | **Recherche internet** — native chez Claude et ChatGPT ; pour les IA gratuites, outil de l'application (Wikipédia sans clé, ou Tavily / Brave avec clé gratuite) |
+| `web_fetch` / `fetch_url` | Lecture complète d'une page web ou d'un PDF en ligne (protégée contre l'accès aux adresses internes) |
 
 ### 3.5 Mémoire partagée
 
@@ -206,6 +220,7 @@ Les deux agents (Claude et ChatGPT) ont accès **à la bibliothèque interne, à
 - [ ] Gestion des fournisseurs (clés dans Vault, test de connexion, liste des modèles)
 - [ ] Gestion des agents et rôles prêts à l'emploi
 - [x] Adaptateurs Claude (Messages API) et OpenAI (Responses API) en streaming, avec appels d'outils et recherche internet native — déjà dans le prototype
+- [x] IA gratuites / open source (Ollama, LM Studio, Gemini, Groq, OpenRouter, Mistral, Cerebras, GitHub Models, Hugging Face) + recherche internet générique — déjà dans le prototype
 - [ ] Worker Node branché sur Supabase
 
 ### Phase 3 — Salle de travail en équipe (priorité)

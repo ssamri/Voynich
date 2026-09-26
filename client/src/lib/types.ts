@@ -17,6 +17,27 @@ export interface ProviderKindInfo {
   suggestedModels: string[];
 }
 
+export interface ProviderPreset {
+  id: string;
+  name: string;
+  description: string;
+  access: 'local' | 'free_tier';
+  baseUrl: string;
+  keyRequired: boolean;
+  signupUrl?: string;
+  defaultModel: string;
+  suggestedModels: string[];
+  maxTokens: number;
+  color: string;
+  notes?: string;
+}
+
+export interface WebSearchSettings {
+  engine: 'wikipedia' | 'tavily' | 'brave';
+  hasKey: boolean;
+  keyHint: string | null;
+}
+
 export type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export interface Agent {

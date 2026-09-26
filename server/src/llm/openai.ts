@@ -194,7 +194,7 @@ export class OpenAIProvider implements LLMProvider {
   private async runChatCompletions(req: AgentLoopRequest): Promise<AgentLoopResult> {
     const { model, events } = req;
     const messages: ChatCompletionMessageParam[] = [{ role: 'system', content: req.system }, ...toChatMessages(req.messages)];
-    const tools: ChatCompletionTool[] = req.tools.map((t) => ({
+    let tools: ChatCompletionTool[] = req.tools.map((t) => ({
       type: 'function',
       function: { name: t.name, description: t.description, parameters: t.jsonSchema },
     }));
@@ -205,17 +205,26 @@ export class OpenAIProvider implements LLMProvider {
 
     for (let step = 0; step < req.maxSteps; step++) {
       const lastStep = step === req.maxSteps - 1;
-      const stream = await this.client.chat.completions.create(
-        {
-          model,
-          messages,
-          stream: true,
-          ...(tools.length ? { tools, tool_choice: lastStep ? 'none' : 'auto' } : {}),
-          max_tokens: req.maxTokens,
-          ...(req.temperature != null ? { temperature: req.temperature } : {}),
-        },
-        { signal: req.signal },
-      );
+      const params = () => ({
+        model,
+        messages,
+        stream: true as const,
+        ...(tools.length ? { tools, tool_choice: lastStep ? ('none' as const) : ('auto' as const) } : {}),
+        max_tokens: req.maxTokens,
+        ...(req.temperature != null ? { temperature: req.temperature } : {}),
+      });
+      let stream;
+      try {
+        stream = await this.client.chat.completions.create(params(), { signal: req.signal });
+      } catch (err) {
+        // Certains modèles gratuits / locaux ne gèrent pas les appels d'outils : on continue sans outils.
+        if (!tools.length || !(err instanceof OpenAI.APIError) || ![400, 404, 422].includes(err.status ?? 0) || !/tool|function/i.test(err.message)) throw err;
+        tools = [];
+        const note = "_(Ce modèle ne prend pas en charge les outils : réponse sans accès à la bibliothèque, à la mémoire ni à internet.)_\n\n";
+        text += note;
+        events.onText(note);
+        stream = await this.client.chat.completions.create(params(), { signal: req.signal });
+      }
 
       let stepText = '';
       const calls = new Map<number, { id: string; name: string; args: string }>();
@@ -246,7 +255,7 @@ export class OpenAIProvider implements LLMProvider {
         if (choice.finish_reason) finish = choice.finish_reason;
       }
 
-      if (stepText) text += (text ? '\n\n' : '') + stepText;
+      if (stepText) text += (text && !text.endsWith('\n\n') ? '\n\n' : '') + stepText;
       stopReason = finish ?? 'stop';
       if (calls.size === 0 || lastStep) break;
       if (finish === 'length') break; // arguments d'outil possiblement tronqués : on n'exécute pas.

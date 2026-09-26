@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { audit } from '../security/auth.js';
 import { encrypt, maskKey } from '../security/crypto.js';
-import { PROVIDER_KINDS, buildProvider, getProviderRow, invalidateProvider, type ProviderRow } from '../llm/registry.js';
+import { getSearchSettings, saveSearchSettings, webSearch } from '../web/search.js';
+import { FREE_PRESETS, PROVIDER_KINDS, buildProvider, getProviderRow, invalidateProvider, type ProviderRow } from '../llm/registry.js';
 
 export const providersRouter = Router();
 
@@ -37,6 +38,24 @@ const providerInput = z.object({
 });
 
 providersRouter.get('/kinds', (_req, res) => res.json(PROVIDER_KINDS));
+providersRouter.get('/presets', (_req, res) => res.json(FREE_PRESETS));
+
+/** Moteur de recherche internet utilisé par les IA sans recherche native. */
+providersRouter.get('/web-search', (_req, res) => res.json(getSearchSettings()));
+providersRouter.put('/web-search', (req, res) => {
+  const b = z.object({ engine: z.enum(['wikipedia', 'tavily', 'brave']), apiKey: z.string().trim().max(300).optional() }).parse(req.body);
+  saveSearchSettings(b.engine, b.apiKey || undefined);
+  audit(req, 'web_search.update', { engine: b.engine, keyChanged: Boolean(b.apiKey) });
+  res.json(getSearchSettings());
+});
+providersRouter.post('/web-search/test', async (_req, res) => {
+  try {
+    const r = await webSearch('Voynich manuscript', 3);
+    res.json({ ok: true, engine: r.engine, count: r.results.length, first: r.results[0]?.title ?? null });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: (err as Error).message });
+  }
+});
 
 providersRouter.get('/', (_req, res) => {
   const rows = db.prepare('SELECT * FROM providers ORDER BY id').all() as ProviderRow[];

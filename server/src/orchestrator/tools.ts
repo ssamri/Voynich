@@ -5,6 +5,7 @@ import { MEMORY_TYPES, createMemory, formatMemory, getMemory, searchMemories, up
 import * as corpus from '../voynich/analysis.js';
 import { getPage, corpusInfo, listPages } from '../voynich/corpus.js';
 import { publish } from './bus.js';
+import { fetchUrl, webSearch } from '../web/search.js';
 
 export const TOOL_GROUPS = {
   library: 'Bibliothèque (recherche et lecture de documents)',
@@ -23,6 +24,8 @@ export interface ToolContext {
   /** Consultation d'un autre agent ; absent pour un agent déjà consulté (pas de récursion). */
   askAgent?: (name: string, question: string) => Promise<string>;
   otherAgents: string[];
+  /** Outils internet génériques (modèles sans recherche web native). */
+  genericWeb?: boolean;
 }
 
 function tool<S extends z.ZodType>(name: string, description: string, input: S, run: (i: z.infer<S>) => Promise<string> | string): ToolDefinition<z.infer<S>> {
@@ -225,6 +228,32 @@ export function buildTools(ctx: ToolContext): ToolDefinition<any>[] {
           const unmapped: Record<string, number> = {};
           for (const l of lines) for (const [k, v] of Object.entries(l.unmapped)) unmapped[k] = (unmapped[k] ?? 0) + v;
           return `${lines.map((l) => l.output).join('\n')}\n\nGlyphes non couverts : ${json(unmapped)}`;
+        },
+      ),
+    );
+  }
+
+  if (ctx.genericWeb) {
+    tools.push(
+      tool(
+        'web_search',
+        'Recherche sur internet. Renvoie une liste de résultats (titre, URL, extrait). Utiliser ensuite fetch_url pour lire une page.',
+        z.object({ query: z.string().min(2).max(300), limit: z.number().int().min(1).max(10).optional() }),
+        async ({ query, limit }) => {
+          const { engine, results } = await webSearch(query, limit ?? 6);
+          if (!results.length) return `Aucun résultat (${engine}).`;
+          return `Moteur : ${engine}\n\n${results.map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}`).join('\n\n')}`;
+        },
+      ),
+      tool(
+        'fetch_url',
+        'Lit le texte d’une page web ou d’un PDF en ligne (URL publique http/https). Utiliser offset pour lire la suite.',
+        z.object({ url: z.string().url(), offset: z.number().int().min(0).optional() }),
+        async ({ url, offset }) => {
+          const page = await fetchUrl(url);
+          const start = offset ?? 0;
+          const slice = page.text.slice(start, start + 15_000);
+          return `« ${page.title || page.url} » — ${page.url}\n(${page.text.length} caractères, extrait ${start}–${start + slice.length})\n\n${slice}`;
         },
       ),
     );
