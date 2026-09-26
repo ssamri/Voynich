@@ -297,13 +297,16 @@ fichiers) à partir de la phase 1. Le code réutilisable (adaptateurs IA, parseu
 
 L'application n'utilise **aucun module natif à compiler** (SQLite intégré à Node) : elle s'installe sans Python ni compilateur.
 
+- Préréglage (framework) : **Express / Node.js (serveur)** — surtout pas « Vite » ni « statique » : un préréglage statique sert
+  le dossier `dist` sans lancer Node, d'où une page **403 Forbidden** (pas d'`index.html` à la racine de `dist`).
 - Version de Node : **22.13 ou plus** (sélectionner 22.x dans le panneau).
 - Commande de build : `npm install && npm run build` · commande de démarrage : `npm start`.
-- Dossier de sortie : **`dist`** · fichier d'entrée : **`dist/index.js`** (le serveur et l'interface y sont regroupés).
+- Dossier de sortie : **`dist`** · fichier d'entrée : **`server.js`** (ou `dist/index.js`, le serveur et l'interface y sont regroupés).
 - Variables d'environnement obligatoires : `APP_SECRET` (≥ 32 caractères, à conserver précieusement), `NODE_ENV=production`, `SETUP_TOKEN` (recommandé).
 - **`DATA_DIR` doit pointer vers un dossier persistant hors du dépôt** (ex. `/home/<utilisateur>/voynich-data`) : sinon la base
   et les fichiers téléversés sont effacés à chaque redéploiement.
-- Si l'hébergeur fournit le port via `PORT`, il est utilisé ; si le proxy ne joint pas l'application, définir `HOST=0.0.0.0`.
+- Si l'hébergeur fournit `PORT` (numéro ou socket), il est utilisé et l'application écoute sur toutes les interfaces.
+- Les journaux d'exécution doivent afficher `[voynich] API prête sur …` ; `/api/health` répond `{"ok":true}`.
 
 ### Docker
 

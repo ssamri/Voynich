@@ -85,6 +85,7 @@ purgeExpiredSessions();
 setInterval(purgeExpiredSessions, 3600_000).unref();
 startCampaignScheduler();
 
-app.listen(config.port, config.host, () => {
-  console.log(`[voynich] API prête sur http://${config.host}:${config.port} (${config.env})`);
-});
+const onListen = () => console.log(`[voynich] API prête sur ${config.host ?? '*'}:${config.port} (${config.env}) — UI : ${clientDist ?? 'introuvable'}`);
+if (typeof config.port === 'string') app.listen(config.port, onListen);
+else if (config.host) app.listen(config.port, config.host, onListen);
+else app.listen(config.port, onListen);

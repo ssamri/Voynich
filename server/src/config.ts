@@ -15,22 +15,26 @@ fs.mkdirSync(path.join(root, 'uploads'), { recursive: true });
 function loadSecret(): string {
   const fromEnv = process.env.APP_SECRET;
   if (fromEnv && fromEnv.length >= 32) return fromEnv;
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('APP_SECRET (>= 32 caractères) est obligatoire en production.');
-  }
   const file = path.join(root, '.secret');
+  if (process.env.NODE_ENV === 'production') {
+    // Plutôt qu'un crash silencieux (l'hébergeur n'affiche alors qu'un 403/503),
+    // on démarre avec un secret persisté dans DATA_DIR et on le signale fort.
+    console.error('[config] ⚠ APP_SECRET (>= 32 caractères) manquant en production : définissez-le dans les variables d’environnement.');
+  }
   if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
   const generated = crypto.randomBytes(48).toString('base64url');
   fs.writeFileSync(file, generated, { mode: 0o600 });
-  console.warn(`[config] APP_SECRET absent : secret de développement généré dans ${file}`);
+  console.warn(`[config] APP_SECRET absent : secret généré dans ${file}`);
   return generated;
 }
 
 export const config = {
   env: process.env.NODE_ENV ?? 'development',
   isProd: process.env.NODE_ENV === 'production',
-  port: Number(process.env.PORT ?? 8787),
-  host: process.env.HOST ?? '127.0.0.1',
+  /** Numéro de port, ou chemin de socket fourni par certains hébergeurs (Passenger/LiteSpeed). */
+  port: /^\d+$/.test(process.env.PORT ?? '') ? Number(process.env.PORT) : (process.env.PORT ?? 8787),
+  /** Si l'hébergeur fournit PORT, on écoute sur toutes les interfaces (sauf HOST explicite). */
+  host: process.env.HOST ?? (process.env.PORT ? undefined : '127.0.0.1'),
   dataDir: root,
   uploadsDir: path.join(root, 'uploads'),
   dbFile: path.join(root, 'voynich.db'),
